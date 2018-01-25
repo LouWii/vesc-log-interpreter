@@ -51,12 +51,60 @@ class Main extends Component
     }
 
     /**
+     * Parse the entire Vesc log file
+     * 
+     *      VescLogInterpreter::$plugin->main->parseLogFile($filePath)
+     *
+     * @param string $filePath
+     * @return mixed
+     */
+    public function parseLogFile($filePath)
+    {
+        $handle = fopen($filePath, "r");
+        if ($handle)
+        {
+            $settings = array();
+            $headers = array();
+            $values = array();
+            $lineCount = 0;
+            $headersRead = FALSE;
+
+            while (($line = fgets($handle)) !== false) {
+                // process the line read.
+                if ($lineCount == 0 && substr($line, 0, 2) == '//')
+                {
+                    // Settings line
+                    $settings = $this->parseSettings($line);
+                }
+                elseif (!$headersRead)
+                {
+                    // Treat this line as the headers for the data
+                    $headers = $this->parseHeaders($line);
+                    $headersRead = TRUE;
+                }
+                else
+                {
+                    // Data row
+                    $values[] = $this->parseData($headers, $line);
+                }
+            }
+            fclose($handle);
+
+            // TODO : Create objects and data structures for JS export
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+
+    /**
      * Parse the Settings row of the Vesc monitor log
      *
      * @param [string] $line
      * @return array
      */
-    function parseSettings($line)
+    public function parseSettings($line)
     {
         $settings = array();
         $settingsParts = explode(',', $line);
@@ -78,7 +126,7 @@ class Main extends Component
      * @param string $line
      * @return array
      */
-    function parseHeaders($line)
+    public function parseHeaders($line)
     {
         $headers = array();
         $headersParts = explode(',', $line);
@@ -97,7 +145,7 @@ class Main extends Component
      * @param string $line
      * @return array
      */
-    function parseData($headers, $line)
+    public function parseData($headers, $line)
     {
         $dataRow = array();
         $dataRowParts = explode(',', $line);

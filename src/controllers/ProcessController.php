@@ -101,6 +101,8 @@ class ProcessController extends Controller
                 }
 
                 echo $fileAbsolutePath;
+
+                $data = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
             }
         }
         else
