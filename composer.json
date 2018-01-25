@@ -1,0 +1,44 @@
+{
+    "name": "louwii/vesc-log-interpreter",
+    "description": "Process log data from VESC Monitor to generate charts",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "vesc log interpreter"
+    ],
+    "support": {
+        "docs": "https://github.com/louwii/vesc-log-interpreter/blob/master/README.md",
+        "issues": "https://github.com/louwii/vesc-log-interpreter/issues"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Louwii",
+            "homepage": "http://github.com/louwii"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.0.0-RC1"
+    },
+    "autoload": {
+        "psr-4": {
+          "louwii\\vescloginterpreter\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "VESC Log Interpreter",
+        "handle": "vesc-log-interpreter",
+        "schemaVersion": "1.0.0",
+        "hasCpSettings": false,
+        "hasCpSection": false,
+        "changelogUrl": "https://raw.githubusercontent.com/louwii/vesc-log-interpreter/master/CHANGELOG.md",
+        "components": {
+            "main": "louwii\\vescloginterpreter\\services\\Main"
+        },
+        "class": "louwii\\vescloginterpreter\\VescLogInterpreter"
+    }
+}
