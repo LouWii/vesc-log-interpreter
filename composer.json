@@ -1,6 +1,6 @@
 {
     "name": "louwii/vesc-log-interpreter",
-    "description": "Process log data from VESC Monitor to generate charts",
+    "description": "Process log data from VESC Monitor to generate JS data",
     "type": "craft-plugin",
     "version": "1.0.0",
     "keywords": [
