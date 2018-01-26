@@ -89,7 +89,7 @@ class VescLogInterpreterVariable
             return array('No data found for that log.');
         }
 
-        return json_encode($data['datasets']);
+        return json_encode(array_values($data['datasets']));
     }
 
     /**
