@@ -80,7 +80,8 @@ class ProcessController extends Controller
     public function actionVescLog()
     {
         // Check https://gist.github.com/sathoro/8178981 for inspiration
-        $result = 'Welcome to the ProcessController actionDoSomething() method';
+
+        $this->requirePostRequest();
 
         $errors = array();
 
@@ -100,9 +101,7 @@ class ProcessController extends Controller
                     $errors[] = "$filename has an invalid extension.";
                 }
 
-                echo $fileAbsolutePath;
-
-                $data = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
+                $datasets = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
             }
         }
         else
@@ -111,11 +110,24 @@ class ProcessController extends Controller
         }
 
         // Put all our data in cache so it can be displayed after the redirect
-
+        $date = new \DateTime();
+        $timestamp = $date->getTimestamp();
+        VescLogInterpreter::$plugin->main->cacheData($timestamp, $datasets, $errors);
 
         // Redirect to provided page in POST
+        if (array_key_exists('redirect', $_POST))
+        {
+            $redirect = $_POST['redirect'];
+        }
+        else
+        {
+            $redirect = '/';
+        }
 
+        // Add the timestamp, used as an ID
+        $redirect .= '?log='.$timestamp;
 
-        return $result;
+        return Craft::$app->response->redirect($redirect, 302);
     }
+
 }
