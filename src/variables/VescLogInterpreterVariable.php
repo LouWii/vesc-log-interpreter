@@ -56,12 +56,64 @@ class VescLogInterpreterVariable
 
     /**
      * The action URL to use in the log file upload form
-     * {{ craft.vescLogInterpreter.formActionUrl() }}
+     * 
+     * {{ craft.vescLogInterpreter.formActionUrl }}
      *
      * @return string
      */
     public function formActionUrl()
     {
         return '/actions/vesc-log-interpreter/process/vesc-log';
+    }
+
+    /**
+     * Retrieve the vesc log data from cache
+     * 
+     * {{ craft.vescLogInterpreter.vescLogData }}
+     * 
+     * Example usage: window.datasets = {{ craft.vescLogInterpreter.vescLogData|raw }};
+     *
+     * @return string
+     */
+    public function vescLogData()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp)
+        {
+            return array('No data found for that log.');
+        }
+
+        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+        if (!is_array($data) || $data['datasets'] === NULL)
+        {
+            return array('No data found for that log.');
+        }
+
+        return json_encode($data['datasets']);
+    }
+
+    /**
+     * Retrieve the vesc log errors from cache
+     * 
+     * {{ craft.vescLogInterpreter.vescLogErrors }}
+     *
+     * @return array
+     */
+    public function vescLogErrors()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp)
+        {
+            return array('No data found for that log.');
+        }
+
+        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+
+        if (!is_array($data) || $data['errors'] === NULL)
+        {
+            return array('No data found for that log.');
+        }
+
+        return $data['errors'];
     }
 }
