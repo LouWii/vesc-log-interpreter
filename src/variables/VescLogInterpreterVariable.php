@@ -80,7 +80,7 @@ class VescLogInterpreterVariable
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp)
         {
-            return array('No data found for that log.');
+            return array('No log to look for.');
         }
 
         $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
@@ -104,7 +104,7 @@ class VescLogInterpreterVariable
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp)
         {
-            return array('No data found for that log.');
+            return array('No log to look for.');
         }
 
         $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
