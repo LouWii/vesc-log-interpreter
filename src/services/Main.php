@@ -216,6 +216,36 @@ class Main extends Component
     }
 
     /**
+     * Cache processed data with a unique ID, to be able to keep it for later
+     *
+     * @param int $timestamp
+     * @param array $datasets
+     * @param array $errors
+     * @return bool True if caching worked, false otherwise
+     */
+    public function cacheData($timestamp, $datasets, $errors)
+    {
+        // Cache processed data
+        // Use https://yii2-cookbook.readthedocs.io/caching/
+        // Use timestamp to create unique IDs and avoid collision if people submits at the same time
+        if ($datasets != NULL && count($datasets) > 0)
+        {
+            // If datasets exist, keep the data for a week
+            $cacheTTL = 60*60*24*7;
+        }
+        else
+        {
+            // If no dataset, then it means process failed, no need to keep it for long
+            $cacheTTL = 3600;
+        }
+
+        return
+            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp), $datasets, $cacheTTL)
+            &&
+            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp), $errors, $cacheTTL);
+    }
+
+    /**
      * Retrieve data from the cache
      *
      * @param [type] $timestamp
@@ -223,8 +253,8 @@ class Main extends Component
      */
     public function retrieveCachedData($timestamp)
     {
-        $datasets = craft()->cache->get(__CLASS__.'--datasets--'.$timestamp);
-        $errors = craft()->cache->get(__CLASS__.'--errors--'.$timestamp);
+        $datasets = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp));
+        $errors = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp));
 
         return array(
             'datasets' => $datasets,
