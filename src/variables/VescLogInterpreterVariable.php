@@ -67,6 +67,33 @@ class VescLogInterpreterVariable
     }
 
     /**
+     * Retrieve the vesc log label from cache
+     * 
+     * {{ craft.vescLogInterpreter.vescLogDataAxisLabels }}
+     * 
+     * Example usage: window.labels = {{ craft.vescLogInterpreter.vescLogDataAxisLabels|raw }}
+     *
+     * @return array
+     */
+    public function vescLogDataAxisLabels()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp)
+        {
+            return array('No log to look for.');
+        }
+
+        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+
+        if (!is_array($data) || $data['axisLabels'] === NULL)
+        {
+            return array('No data found for that log.');
+        }
+
+        return json_encode($data['axisLabels']);
+    }
+
+    /**
      * Retrieve the vesc log data from cache
      * 
      * {{ craft.vescLogInterpreter.vescLogDataDatasets }}

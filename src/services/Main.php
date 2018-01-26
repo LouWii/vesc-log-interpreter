@@ -91,9 +91,20 @@ class Main extends Component
             }
             fclose($handle);
 
+            if (count($values) == 0)
+            {
+                return 'Couldn\'t find any row containing data.';
+            }
+
+            $xAxisLabels = array();
+            foreach ($values as $value)
+            {
+                $xAxisLabels[] = $value['Time'];
+            }
+
             $datasets = $this->createDataSets($headers, $values);
 
-            return $datasets;
+            return array('xAxisLabels' => $xAxisLabels, 'datasets' => $datasets);
         }
         else
         {
@@ -210,6 +221,11 @@ class Main extends Component
         return VescLogInterpreter::$plugin->name.'--datasets--'.$timestamp;
     }
 
+    public function getAxisLabelsCacheId($timestamp)
+    {
+        return VescLogInterpreter::$plugin->name.'--axis_labels--'.$timestamp;
+    }
+
     public function getErrorsCacheId($timestamp)
     {
         return VescLogInterpreter::$plugin->name.'--errors--'.$timestamp;
@@ -223,7 +239,7 @@ class Main extends Component
      * @param array $errors
      * @return bool True if caching worked, false otherwise
      */
-    public function cacheData($timestamp, $datasets, $errors)
+    public function cacheData($timestamp, $axisLabels, $datasets, $errors)
     {
         // Cache processed data
         // Use https://yii2-cookbook.readthedocs.io/caching/
@@ -242,7 +258,10 @@ class Main extends Component
         return
             Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp), $datasets, $cacheTTL)
             &&
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp), $errors, $cacheTTL);
+            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp), $axisLabels, $cacheTTL)
+            &&
+            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp), $errors, $cacheTTL)
+            ;
     }
 
     /**
@@ -253,10 +272,12 @@ class Main extends Component
      */
     public function retrieveCachedData($timestamp)
     {
+        $xAxisLabels = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp));
         $datasets = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp));
         $errors = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp));
 
         return array(
+            'axisLabels' => $xAxisLabels,
             'datasets' => $datasets,
             'errors' => $errors
         );

@@ -101,7 +101,18 @@ class ProcessController extends Controller
                     $errors[] = "$filename has an invalid extension.";
                 }
 
-                $datasets = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
+                $result = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
+                if (!is_array($result))
+                {
+                    $errors[] = $result;
+                    $datasets = array();
+                    $xAxisLabels = array();
+                }
+                else
+                {
+                    $datasets = $result['datasets'];
+                    $xAxisLabels = $result['xAxisLabels'];
+                }
             }
         }
         else
@@ -112,7 +123,7 @@ class ProcessController extends Controller
         // Put all our data in cache so it can be displayed after the redirect
         $date = new \DateTime();
         $timestamp = $date->getTimestamp();
-        VescLogInterpreter::$plugin->main->cacheData($timestamp, $datasets, $errors);
+        VescLogInterpreter::$plugin->main->cacheData($timestamp, $xAxisLabels, $datasets, $errors);
 
         // Redirect to provided page in POST
         if (array_key_exists('redirect', $_POST))
