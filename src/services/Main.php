@@ -11,6 +11,7 @@
 namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\VescLogInterpreter;
+use louwii\vescloginterpreter\models\ChartDataSet;
 
 use Craft;
 use craft\base\Component;
@@ -90,11 +91,13 @@ class Main extends Component
             }
             fclose($handle);
 
-            // TODO : Create objects and data structures for JS export
+            $datasets = $this->createDataSets($headers, $values);
+
+            return $datasets;
         }
         else
         {
-            return FALSE;
+            return 'Couldn\'t read the file after upload.';
         }
     }
 
@@ -169,5 +172,63 @@ class Main extends Component
         }
 
         return $dataRow;
+    }
+
+    public function createDataSets($headers, $values)
+    {
+        $dataSets = array();
+
+        $dataSetsNotWanted = array('Time', 'TimePassedInMs');
+
+        foreach ($headers as $header)
+        {
+            if (!in_array($header, $dataSetsNotWanted))
+            {
+                $dataSet = new ChartDataSet();
+                $dataSet->label = $header;
+
+                $dataSets[$header] = $dataSet;
+            }
+        }
+
+        foreach ($values as $value)
+        {
+            foreach ($headers as $header)
+            {
+                if (!in_array($header, $dataSetsNotWanted))
+                {
+                    $dataSets[$header]->data[] = $value[$header];
+                }
+            }
+        }
+
+        return $dataSets;
+    }
+
+    public function getDatasetsCacheId($timestamp)
+    {
+        return VescLogInterpreter::$plugin->name.'--datasets--'.$timestamp;
+    }
+
+    public function getErrorsCacheId($timestamp)
+    {
+        return VescLogInterpreter::$plugin->name.'--errors--'.$timestamp;
+    }
+
+    /**
+     * Retrieve data from the cache
+     *
+     * @param [type] $timestamp
+     * @return void
+     */
+    public function retrieveCachedData($timestamp)
+    {
+        $datasets = craft()->cache->get(__CLASS__.'--datasets--'.$timestamp);
+        $errors = craft()->cache->get(__CLASS__.'--errors--'.$timestamp);
+
+        return array(
+            'datasets' => $datasets,
+            'errors' => $errors
+        );
     }
 }
