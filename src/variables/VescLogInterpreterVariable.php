@@ -69,13 +69,13 @@ class VescLogInterpreterVariable
     /**
      * Retrieve the vesc log data from cache
      * 
-     * {{ craft.vescLogInterpreter.vescLogData }}
+     * {{ craft.vescLogInterpreter.vescLogDataDatasets }}
      * 
-     * Example usage: window.datasets = {{ craft.vescLogInterpreter.vescLogData|raw }};
+     * Example usage: window.datasets = {{ craft.vescLogInterpreter.vescLogDataDatasets|raw }};
      *
      * @return string
      */
-    public function vescLogData()
+    public function vescLogDataDatasets()
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp)
@@ -95,11 +95,11 @@ class VescLogInterpreterVariable
     /**
      * Retrieve the vesc log errors from cache
      * 
-     * {{ craft.vescLogInterpreter.vescLogErrors }}
+     * {{ craft.vescLogInterpreter.vescLogDataErrors }}
      *
      * @return array
      */
-    public function vescLogErrors()
+    public function vescLogDataErrors()
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp)
