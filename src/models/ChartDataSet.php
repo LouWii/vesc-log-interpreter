@@ -38,6 +38,18 @@ class ChartDataSet extends Model
     public $borderColor;
     public $fill;
 
+    // Points settings
+    // public $pointBackgroundColor;
+    // public $pointBorderColor;
+    // public $pointBorderWidth;
+    public $pointRadius;
+    // public $pointStyle;
+    // public $pointHitRadius;
+    // public $pointHoverBackgroundColor;
+    // public $pointHoverBorderColor;
+    // public $pointHoverBorderWidth;
+    // public $pointHoverRadius;
+
     public $lineColors = array(
         'rgb(54, 162, 235)', //'blue'
         'rgb(75, 192, 192)', //'green'
@@ -58,6 +70,8 @@ class ChartDataSet extends Model
         $this->fill = FALSE;
         // $this->backgroundColor = $this->lineColors[rand(0, (count($this->lineColors) - 1))];
         $this->borderColor = $this->lineColors[rand(0, (count($this->lineColors) - 1))];
+
+        $this->pointRadius = 0;
     }
 
     /**
