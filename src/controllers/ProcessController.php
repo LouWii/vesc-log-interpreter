@@ -84,8 +84,10 @@ class ProcessController extends Controller
         $this->requirePostRequest();
 
         $errors = array();
+        $datasets = array();
+        $xAxisLabels = array();
 
-        if (array_key_exists('vescLogFile', $_FILES))
+        if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '')
         {
             $uploadedFile = $_FILES['vescLogFile'];
             $fileError = $uploadedFile['error'];
@@ -105,8 +107,6 @@ class ProcessController extends Controller
                 if (!is_array($result))
                 {
                     $errors[] = $result;
-                    $datasets = array();
-                    $xAxisLabels = array();
                 }
                 else
                 {
@@ -117,7 +117,7 @@ class ProcessController extends Controller
         }
         else
         {
-            $errors[] = 'Could not find file.';
+            $errors[] = 'No file sent';
         }
 
         // Put all our data in cache so it can be displayed after the redirect
