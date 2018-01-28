@@ -99,7 +99,16 @@ class Main extends Component
             $xAxisLabels = array();
             foreach ($values as $value)
             {
-                $xAxisLabels[] = $value['Time'];
+                // Convert time string to object
+                // Time is saved as '22_01_2018_22_43_04.657'
+                $timeStr = $value['Time'];
+                $timeParts = explode('_', $timeStr);
+                $timeStrFormated = $timeParts[2].'-'.$timeParts[1].'-'.$timeParts[0].' '.$timeParts[3].':'.$timeParts[4].':'.$timeParts[5];
+                // $dateTime = new \Datetime($timeStrFormated);
+
+                // $xAxisLabels[] = $value['Time'];
+                // $xAxisLabels[] = $dateTime;
+                $xAxisLabels[] = $timeStrFormated;
             }
 
             $datasets = $this->createDataSets($headers, $values);
