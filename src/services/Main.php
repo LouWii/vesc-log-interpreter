@@ -111,6 +111,11 @@ class Main extends Component
                 $xAxisLabels[] = $timeStrFormated;
             }
 
+            // Trim labels and values
+            // ChartJS seems to have issues with too many values
+            $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
+            $values = array_slice($values, 0, 4000);
+
             $datasets = $this->createDataSets($headers, $values);
 
             return array('xAxisLabels' => $xAxisLabels, 'datasets' => $datasets);
