@@ -111,12 +111,42 @@ class Main extends Component
                 $xAxisLabels[] = $timeStrFormated;
             }
 
-            // Trim labels and values
             // ChartJS seems to have issues with too many values
-            $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
-            $values = array_slice($values, 0, 4000);
+            // We're dividing data into multiple arrays/parts
+            $sliced = FALSE;
+            $maxPerSlice = 2000;
+            if (count($xAxisLabels) > $maxPerSlice && (count($xAxisLabels)-$maxPerSlice) > 200)
+            {
+                $sliced = TRUE;
+                $slicedXAxisLabels = array();
+                $slicedValues = array();
+                $offset = 0;
+                while( count( array_slice($xAxisLabels, $offset, $maxPerSlice) ) > 0)
+                {
+                    $slicedXAxisLabels[] = array_slice($xAxisLabels, $offset, $maxPerSlice);
+                    $slicedValues[] = array_slice($values, $offset, $maxPerSlice);
+                    $offset += $maxPerSlice;
+                }
+                // $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
+                // $values = array_slice($values, 0, 4000);
+                $xAxisLabels = $slicedXAxisLabels;
+                $values = $slicedValues;
+            }
 
-            $datasets = $this->createDataSets($headers, $values);
+            if ($sliced)
+            {
+                $datasets = array();
+                foreach ($values as $valuesPart)
+                {
+                    $datasets[] = $this->createDataSets($headers, $valuesPart);
+                }
+            }
+            else
+            {
+                $datasets = $this->createDataSets($headers, $values);
+                $xAxisLabels = array($xAxisLabels);
+                $datasets = array($datasets);
+            }
 
             return array('xAxisLabels' => $xAxisLabels, 'datasets' => $datasets);
         }

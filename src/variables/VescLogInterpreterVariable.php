@@ -116,7 +116,14 @@ class VescLogInterpreterVariable
             return array('No data found for that log.');
         }
 
-        return json_encode(array_values($data['datasets']));
+        // Need to convert all datasets arrays as they don't use int indexes, but strings
+        // json_encode will transform those to Objects and we don't want that
+        $returnArray = array();
+        foreach ($data['datasets'] as $datasetPart)
+        {
+            $returnArray[] = array_values($datasetPart);
+        }
+        return json_encode($returnArray);
     }
 
     /**
