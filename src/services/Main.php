@@ -31,35 +31,27 @@ use craft\base\Component;
  */
 class Main extends Component
 {
+    private $dataConverter;
+
+    public function __construct()
+    {
+        $this->dataConverter = new DataConverter();
+    }
+
     // Public Methods
     // =========================================================================
 
-    /**
-     * This function can literally be anything you want, and you can have as many service
-     * functions as you want
-     *
-     * From any other plugin file, call it like this:
-     *
-     *     VescLogInterpreter::$plugin->main->exampleService()
-     *
-     * @return mixed
-     */
-    public function exampleService()
-    {
-        $result = 'something';
-
-        return $result;
-    }
-
+    
     /**
      * Parse the entire Vesc log file
      * 
      *      VescLogInterpreter::$plugin->main->parseLogFile($filePath)
      *
      * @param string $filePath
+     * @param boolean|integer $sumUp False to not sum up values, or integer value to reduce log to $sumUp points
      * @return mixed
      */
-    public function parseLogFile($filePath)
+    public function parseLogFile($filePath, $sumUp = false)
     {
         $handle = fopen($filePath, "r");
         if ($handle)
@@ -67,6 +59,7 @@ class Main extends Component
             $settings = array();
             $headers = array();
             $values = array();
+            $dataPoints = array();
             $lineCount = 0;
             $headersRead = FALSE;
 
@@ -86,69 +79,54 @@ class Main extends Component
                 else
                 {
                     // Data row
-                    $values[] = $this->parseData($headers, $line);
+                    $dataPoints[] = $this->dataConverter->convertCsvToDataPoint($headers, $line);
                 }
             }
             fclose($handle);
 
-            if (count($values) == 0)
+            if (count($dataPoints) == 0)
             {
                 return 'Couldn\'t find any row containing data.';
             }
 
-            $xAxisLabels = array();
-            foreach ($values as $value)
-            {
-                // Convert time string to object
-                // Time is saved as '22_01_2018_22_43_04.657'
-                $timeStr = $value['Time'];
-                $timeParts = explode('_', $timeStr);
-                $timeStrFormated = $timeParts[2].'-'.$timeParts[1].'-'.$timeParts[0].' '.$timeParts[3].':'.$timeParts[4].':'.$timeParts[5];
-                // $dateTime = new \Datetime($timeStrFormated);
-
-                // $xAxisLabels[] = $value['Time'];
-                // $xAxisLabels[] = $dateTime;
-                $xAxisLabels[] = $timeStrFormated;
-            }
-
             // ChartJS seems to have issues with too many values
             // We're dividing data into multiple arrays/parts
-            $sliced = FALSE;
-            $maxPerSlice = 2000;
-            if (count($xAxisLabels) > $maxPerSlice && (count($xAxisLabels)-$maxPerSlice) > 200)
-            {
-                $sliced = TRUE;
-                $slicedXAxisLabels = array();
-                $slicedValues = array();
-                $offset = 0;
-                while( count( array_slice($xAxisLabels, $offset, $maxPerSlice) ) > 0)
-                {
-                    $slicedXAxisLabels[] = array_slice($xAxisLabels, $offset, $maxPerSlice);
-                    $slicedValues[] = array_slice($values, $offset, $maxPerSlice);
-                    $offset += $maxPerSlice;
-                }
-                // $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
-                // $values = array_slice($values, 0, 4000);
-                $xAxisLabels = $slicedXAxisLabels;
-                $values = $slicedValues;
-            }
+            // $sliced = FALSE;
+            // $maxPerSlice = 2000;
+            // if (count($xAxisLabels) > $maxPerSlice && (count($xAxisLabels)-$maxPerSlice) > 200)
+            // {
+            //     $sliced = TRUE;
+            //     $slicedXAxisLabels = array();
+            //     $slicedValues = array();
+            //     $offset = 0;
+            //     while( count( array_slice($xAxisLabels, $offset, $maxPerSlice) ) > 0)
+            //     {
+            //         $slicedXAxisLabels[] = array_slice($xAxisLabels, $offset, $maxPerSlice);
+            //         $slicedValues[] = array_slice($values, $offset, $maxPerSlice);
+            //         $offset += $maxPerSlice;
+            //     }
+            //     // $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
+            //     // $values = array_slice($values, 0, 4000);
+            //     $xAxisLabels = $slicedXAxisLabels;
+            //     $values = $slicedValues;
+            // }
 
-            if ($sliced)
-            {
-                $datasets = array();
-                foreach ($values as $valuesPart)
-                {
-                    $datasets[] = $this->createDataSets($headers, $valuesPart);
-                }
-            }
-            else
-            {
-                $datasets = $this->createDataSets($headers, $values);
-                $xAxisLabels = array($xAxisLabels);
-                $datasets = array($datasets);
-            }
+            // if ($sliced)
+            // {
+            //     $datasets = array();
+            //     foreach ($values as $valuesPart)
+            //     {
+            //         $datasets[] = $this->createDataSets($headers, $valuesPart);
+            //     }
+            // }
+            // else
+            // {
+            //     $datasets = $this->createDataSets($headers, $values);
+            //     $xAxisLabels = array($xAxisLabels);
+            //     $datasets = array($datasets);
+            // }
 
-            return array('xAxisLabels' => $xAxisLabels, 'datasets' => $datasets);
+            return $this->dataConverter->convertDataPointsToChartJS($dataPoints);
         }
         else
         {
