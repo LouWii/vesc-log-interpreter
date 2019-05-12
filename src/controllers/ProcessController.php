@@ -88,6 +88,7 @@ class ProcessController extends Controller
         $errors = array();
         $datasets = array();
         $xAxisLabels = array();
+        $maxValues = array();
 
         if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '') {
             $uploadedFile = $_FILES['vescLogFile'];
@@ -110,6 +111,7 @@ class ProcessController extends Controller
                 } else {
                     $datasets = $result['datasets'];
                     $xAxisLabels = $result['xAxisLabels'];
+                    $maxValues = $result['maxValues'];
                 }
             }
         } else {
@@ -119,7 +121,7 @@ class ProcessController extends Controller
         // Put all our data in cache so it can be displayed after the redirect
         $date = new \DateTime();
         $timestamp = $date->getTimestamp();
-        VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $xAxisLabels, $datasets, $errors);
+        VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $xAxisLabels, $datasets, $maxValues, $errors);
 
         // Redirect to provided page in POST
         if (array_key_exists('redirect', $_POST)) {

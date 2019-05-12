@@ -143,4 +143,26 @@ class VescLogInterpreterVariable
 
         return $data['errors'];
     }
+
+    /**
+     * Retrieve an array containing all max values for the different types
+     * 
+     * {{ craft.vescLogInterpreter.vescLogDataMaxValues }}
+     * 
+     * @return array
+     */
+    public function vescLogDataMaxValues()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return array('No log to look for.');
+        }
+
+        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+        if (!is_array($data) || $data['maxValues'] === NULL) {
+            return array('No data found for that log.');
+        }
+
+        return $data['maxValues'];
+    }
 }

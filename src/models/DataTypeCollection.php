@@ -65,4 +65,15 @@ class DataTypeCollection extends Model
 
         $this->dataTypes[$typeName]->addValue($value);
     }
+
+    public function getMaxValues()
+    {
+        $maxValues = array();
+
+        foreach ($this->dataTypes as $dataType) {
+            $maxValues[$dataType->getName()] = $dataType->getMaxValue();
+        }
+
+        return $maxValues;
+    }
 }

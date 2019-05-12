@@ -58,4 +58,19 @@ class DataType extends Model
     {
         return $this->values;
     }
+
+    /**
+     * Get the maximum value
+     */
+    public function getMaxValue()
+    {
+        $maxValue = 0;
+        foreach ($this->values as $value) {
+            if ($value > $maxValue) {
+                $maxValue = $value;
+            }
+        }
+
+        return $maxValue;
+    }
 }

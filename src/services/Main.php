@@ -34,7 +34,6 @@ class Main extends Component
     // Public Methods
     // =========================================================================
 
-    
     /**
      * Parse the entire Vesc log file
      * 
@@ -113,7 +112,11 @@ class Main extends Component
             //     $datasets = array($datasets);
             // }
 
-            return VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
+            $chartData = VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
+
+            $chartData['maxValues'] = $dataTypeCollection->getMaxValues();
+
+            return $chartData;
         } else {
             return 'Couldn\'t read the file after upload.';
         }
@@ -154,32 +157,6 @@ class Main extends Component
         }
 
         return $headers;
-    }
-
-    /**
-     * Parse a data row of the Vesc monitor log
-     *
-     * @param array $headers
-     * @param string $line
-     * @return array
-     */
-    public function parseData($headers, $line)
-    {
-        $dataRow = array();
-        $dataRowParts = explode(',', $line);
-        if (count($dataRowParts) == count($headers)) {
-            foreach ($headers as $idx => $header) {
-                if ($header != 'Time') {
-                    $dataRow[$header] = floatval($dataRowParts[$idx]);
-                } else {
-                    $dataRow[$header] = $dataRowParts[$idx];
-                }
-            }
-        } else {
-            throw new Exception('Got '.count($headers).' headers and '.count($dataRowParts).' data items, cannot parse data');
-        }
-
-        return $dataRow;
     }
 
     public function createDataSets($headers, $values)

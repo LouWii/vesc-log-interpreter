@@ -39,6 +39,11 @@ class Cache extends Component
         return VescLogInterpreter::getInstance()->name.'--errors--'.$timestamp;
     }
 
+    public function getMaxValuesCacheId($timestamp)
+    {
+        return VescLogInterpreter::getInstance()->name.'--maxValues--'.$timestamp;
+    }
+
     /**
      * Cache processed data with a unique ID, to be able to keep it for later
      *
@@ -47,7 +52,7 @@ class Cache extends Component
      * @param array $errors
      * @return bool True if caching worked, false otherwise
      */
-    public function cacheData($timestamp, $axisLabels, $datasets, $errors)
+    public function cacheData($timestamp, $axisLabels, $datasets, $maxValues, $errors)
     {
         // Cache processed data
         // Use https://yii2-cookbook.readthedocs.io/caching/
@@ -66,6 +71,8 @@ class Cache extends Component
             Craft::$app->cache->set($this->getAxisLabelsCacheId($timestamp), $axisLabels, $cacheTTL)
             &&
             Craft::$app->cache->set($this->getErrorsCacheId($timestamp), $errors, $cacheTTL)
+            &&
+            Craft::$app->cache->set($this->getMaxValuesCacheId($timestamp), $maxValues, $cacheTTL)
             ;
     }
 
@@ -80,11 +87,13 @@ class Cache extends Component
         $xAxisLabels = Craft::$app->cache->get($this->getAxisLabelsCacheId($timestamp));
         $datasets = Craft::$app->cache->get($this->getDatasetsCacheId($timestamp));
         $errors = Craft::$app->cache->get($this->getErrorsCacheId($timestamp));
+        $maxValues = Craft::$app->cache->get($this->getMaxValuesCacheId($timestamp));
 
         return array(
             'axisLabels' => $xAxisLabels,
             'datasets' => $datasets,
-            'errors' => $errors
+            'errors' => $errors,
+            'maxValues' => $maxValues,
         );
     }
 }
