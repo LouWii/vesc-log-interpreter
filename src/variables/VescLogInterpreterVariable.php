@@ -10,6 +10,7 @@
 
 namespace louwii\vescloginterpreter\variables;
 
+use louwii\vescloginterpreter\models\ParsedData;
 use louwii\vescloginterpreter\VescLogInterpreter;
 
 use Craft;
@@ -28,6 +29,8 @@ use Craft;
  */
 class VescLogInterpreterVariable
 {
+    private $cachedParsedData;
+
     // Public Methods
     // =========================================================================
 
@@ -67,6 +70,25 @@ class VescLogInterpreterVariable
     }
 
     /**
+     * {{ craft.vescLogInterpreter.vescLogDataFound }}
+     */
+    public function vescLogDataFound()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return false;
+        }
+
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Retrieve the vesc log label from cache
      * 
      * {{ craft.vescLogInterpreter.vescLogDataAxisLabels }}
@@ -79,16 +101,16 @@ class VescLogInterpreterVariable
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp) {
-            return array('No log to look for.');
+            return null;
         }
 
-        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!is_array($data) || $data['axisLabels'] === NULL) {
-            return array('No data found for that log.');
+        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
+            return null;
         }
 
-        return json_encode($data['axisLabels']);
+        return json_encode($parsedData->getXAxisLabels());
     }
 
     /**
@@ -104,18 +126,19 @@ class VescLogInterpreterVariable
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp) {
-            return array('No log to look for.');
+            return null;
         }
 
-        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-        if (!is_array($data) || $data['datasets'] === NULL) {
-            return array('No data found for that log.');
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
+            return null;
         }
 
         // Need to convert all datasets arrays as they don't use int indexes, but strings
         // json_encode will transform those to Objects and we don't want that
         $returnArray = array();
-        foreach ($data['datasets'] as $datasetPart) {
+        foreach ($parsedData->getDataSets() as $datasetPart) {
             $returnArray[] = array_values($datasetPart);
         }
         return json_encode($returnArray);
@@ -132,37 +155,47 @@ class VescLogInterpreterVariable
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp) {
-            return array('No log to look for.');
+            return null;
         }
 
-        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!is_array($data) || $data['errors'] === NULL) {
-            return array('No data found for that log.');
+        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
+            return null;
         }
 
-        return $data['errors'];
+        return $parsedData->getParsingErrors();
     }
 
     /**
      * Retrieve an array containing all max values for the different types
      * 
      * {{ craft.vescLogInterpreter.vescLogDataMaxValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataMaxValues('MotorCurrent') }}
      * 
      * @return array
      */
-    public function vescLogDataMaxValues()
+    public function vescLogDataMaxValues($valueType = null)
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp) {
-            return array('No log to look for.');
+            return null;
         }
 
-        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-        if (!is_array($data) || $data['maxValues'] === NULL) {
-            return array('No data found for that log.');
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getMaxValues() === NULL) {
+            return null;
         }
 
-        return $data['maxValues'];
+        if ($valueType) {
+            if (array_key_exists($valueType, $parsedData->getMaxValues())) {
+                return $parsedData->getMaxValues()[$valueType];
+            }
+            return null;
+        }
+
+        return $parsedData->getMaxValues();
     }
 }

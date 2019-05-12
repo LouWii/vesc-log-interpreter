@@ -11,6 +11,7 @@
 namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\VescLogInterpreter;
+use louwii\vescloginterpreter\models\ParsedData;
 
 use Craft;
 use yii\base\Component;
@@ -24,40 +25,24 @@ use yii\base\Component;
  */
 class Cache extends Component
 {
-    public function getDatasetsCacheId($timestamp)
+    public function getParsedDataCacheId($timestamp)
     {
-        return VescLogInterpreter::getInstance()->name.'--datasets--'.$timestamp;
-    }
-
-    public function getAxisLabelsCacheId($timestamp)
-    {
-        return VescLogInterpreter::getInstance()->name.'--axis_labels--'.$timestamp;
-    }
-
-    public function getErrorsCacheId($timestamp)
-    {
-        return VescLogInterpreter::getInstance()->name.'--errors--'.$timestamp;
-    }
-
-    public function getMaxValuesCacheId($timestamp)
-    {
-        return VescLogInterpreter::getInstance()->name.'--maxValues--'.$timestamp;
+        return VescLogInterpreter::getInstance()->name.'--parsed--'.$timestamp;
     }
 
     /**
      * Cache processed data with a unique ID, to be able to keep it for later
      *
      * @param int $timestamp
-     * @param array $datasets
-     * @param array $errors
+     * @param ParsedData $parsedData
      * @return bool True if caching worked, false otherwise
      */
-    public function cacheData($timestamp, $axisLabels, $datasets, $maxValues, $errors)
+    public function cacheData($timestamp, ParsedData $parsedData)
     {
         // Cache processed data
         // Use https://yii2-cookbook.readthedocs.io/caching/
         // Use timestamp to create unique IDs and avoid collision if people submits at the same time
-        if ($datasets != NULL && count($datasets) > 0) {
+        if ($parsedData != NULL && count($parsedData->getDataSets()) > 0) {
             // If datasets exist, keep the data for a week
             $cacheTTL = 60*60*24*7;
         } else {
@@ -65,35 +50,19 @@ class Cache extends Component
             $cacheTTL = 3600;
         }
 
-        return
-            Craft::$app->cache->set($this->getDatasetsCacheId($timestamp), $datasets, $cacheTTL)
-            &&
-            Craft::$app->cache->set($this->getAxisLabelsCacheId($timestamp), $axisLabels, $cacheTTL)
-            &&
-            Craft::$app->cache->set($this->getErrorsCacheId($timestamp), $errors, $cacheTTL)
-            &&
-            Craft::$app->cache->set($this->getMaxValuesCacheId($timestamp), $maxValues, $cacheTTL)
-            ;
+        return Craft::$app->cache->set($this->getParsedDataCacheId($timestamp), $parsedData, $cacheTTL);
     }
 
     /**
      * Retrieve data from the cache
      *
-     * @param [type] $timestamp
+     * @param $timestamp
      * @return void
      */
     public function retrieveCachedData($timestamp)
     {
-        $xAxisLabels = Craft::$app->cache->get($this->getAxisLabelsCacheId($timestamp));
-        $datasets = Craft::$app->cache->get($this->getDatasetsCacheId($timestamp));
-        $errors = Craft::$app->cache->get($this->getErrorsCacheId($timestamp));
-        $maxValues = Craft::$app->cache->get($this->getMaxValuesCacheId($timestamp));
+        $parsedData = Craft::$app->cache->get($this->getParsedDataCacheId($timestamp));
 
-        return array(
-            'axisLabels' => $xAxisLabels,
-            'datasets' => $datasets,
-            'errors' => $errors,
-            'maxValues' => $maxValues,
-        );
+        return $parsedData;
     }
 }

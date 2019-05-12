@@ -11,8 +11,10 @@
 namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\VescLogInterpreter;
+use louwii\vescloginterpreter\models\ChartData;
 use louwii\vescloginterpreter\models\ChartDataSet;
 use louwii\vescloginterpreter\models\DataTypeCollection;
+use louwii\vescloginterpreter\models\ParsedData;
 
 use yii\base\Component;
 
@@ -114,9 +116,13 @@ class Main extends Component
 
             $chartData = VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
 
-            $chartData['maxValues'] = $dataTypeCollection->getMaxValues();
+            $parsedData = new ParsedData();
+            $parsedData->setXAxisLabels($chartData['xAxisLabels']);
+            $parsedData->setDataSets($chartData['datasets']);
+            $parsedData->setMaxValues($dataTypeCollection->getMaxValues());
+            $parsedData->setMinValues($dataTypeCollection->getMinValues());
 
-            return $chartData;
+            return $parsedData;
         } else {
             return 'Couldn\'t read the file after upload.';
         }

@@ -66,6 +66,11 @@ class DataTypeCollection extends Model
         $this->dataTypes[$typeName]->addValue($value);
     }
 
+    /**
+     * Get an array containing the max value for each type
+     * 
+     * @return array
+     */
     public function getMaxValues()
     {
         $maxValues = array();
@@ -75,5 +80,21 @@ class DataTypeCollection extends Model
         }
 
         return $maxValues;
+    }
+
+    /**
+     * Get an array containing the min value for each type
+     * 
+     * @return array
+     */
+    public function getMinValues()
+    {
+        $minValues = array();
+
+        foreach ($this->dataTypes as $dataType) {
+            $minValues[$dataType->getName()] = $dataType->getMinValue();
+        }
+
+        return $minValues;
     }
 }

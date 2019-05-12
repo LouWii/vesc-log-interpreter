@@ -10,6 +10,7 @@
 
 namespace louwii\vescloginterpreter\controllers;
 
+use louwii\vescloginterpreter\models\ParsedData;
 use louwii\vescloginterpreter\VescLogInterpreter;
 
 use Craft;
@@ -83,12 +84,10 @@ class ProcessController extends Controller
 
         $this->requirePostRequest();
 
-        $result = Craft::$app->getRequest()->resolve();
+        $requestResult = Craft::$app->getRequest()->resolve();
 
         $errors = array();
-        $datasets = array();
-        $xAxisLabels = array();
-        $maxValues = array();
+        $result = null;
 
         if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '') {
             $uploadedFile = $_FILES['vescLogFile'];
@@ -104,14 +103,12 @@ class ProcessController extends Controller
                     $errors[] = "$filename has an invalid extension.";
                 }
 
+                // TODO: use try/catch here and throw exceptions during parsing instead of returning a string
                 $result = VescLogInterpreter::getInstance()->main->parseLogFile($fileAbsolutePath);
 
-                if (!is_array($result)) {
+                if (!$result instanceof ParsedData) {
                     $errors[] = $result;
-                } else {
-                    $datasets = $result['datasets'];
-                    $xAxisLabels = $result['xAxisLabels'];
-                    $maxValues = $result['maxValues'];
+                    $result = null;
                 }
             }
         } else {
@@ -121,7 +118,13 @@ class ProcessController extends Controller
         // Put all our data in cache so it can be displayed after the redirect
         $date = new \DateTime();
         $timestamp = $date->getTimestamp();
-        VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $xAxisLabels, $datasets, $maxValues, $errors);
+        if (!$result) {
+            $result = new ParsedData();
+            $result->setParsingErrors($errors);
+        }
+        if (!VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $result)) {
+            throw new \Exception('Caching the parsed results failed');
+        }
 
         // Redirect to provided page in POST
         if (array_key_exists('redirect', $_POST)) {

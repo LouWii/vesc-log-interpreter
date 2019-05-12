@@ -46,9 +46,14 @@ class DataType extends Model
         $this->name = $name;
     }
 
-    public function addValue($value)
+    public function addValue($value, $key = null)
     {
-        $this->values[] = $value;
+        if ($key == null) {
+            $this->values[] = $value;
+        } else {
+            $this->values[$key] = $value;
+        }
+        
     }
 
     /**
@@ -64,7 +69,7 @@ class DataType extends Model
      */
     public function getMaxValue()
     {
-        $maxValue = 0;
+        $maxValue = PHP_INT_MIN;
         foreach ($this->values as $value) {
             if ($value > $maxValue) {
                 $maxValue = $value;
@@ -72,5 +77,20 @@ class DataType extends Model
         }
 
         return $maxValue;
+    }
+
+    /**
+     * Get the minimum value
+     */
+    public function getMinValue()
+    {
+        $minValue = PHP_INT_MAX;
+        foreach ($this->values as $value) {
+            if ($value < $minValue) {
+                $minValue = $value;
+            }
+        }
+
+        return $minValue;
     }
 }
