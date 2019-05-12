@@ -12,6 +12,7 @@ namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\models\ChartDataSet;
 use louwii\vescloginterpreter\models\DataPoint;
+use louwii\vescloginterpreter\models\DataTypeCollection;
 
 use craft\base\Component;
 
@@ -25,7 +26,7 @@ use craft\base\Component;
 class DataConverter extends Component
 {
     /**
-     * 
+     * "Convert" a line of a CSV file to a DataPoint object
      */
     public function convertCsvToDataPoint(array $headers, string $csvLine, array $ignore = array('TimePassedInMs'))
     {
@@ -96,6 +97,47 @@ class DataConverter extends Component
         }
 
         // xAxisLabels needs to be an array of array (because there can be multiple x axis labels?)
+        return array('xAxisLabels' => array($xAxisLabels), 'datasets' => array($dataSets));
+    }
+
+    /**
+     * Parse line from CSV file and add values to a DataTypeCollection
+     */
+    public function addCsvDataToDataTypeCollection(array $headers, string $csvLine, DataTypeCollection $dataTypeCollection, array $ignore = array('TimePassedInMs'))
+    {
+        $dataRowParts = explode(',', $csvLine);
+        if (count($dataRowParts) == count($headers)) {
+            
+            foreach ($headers as $idx => $header) {
+                if (!in_array($header, $ignore)) {
+                    if ($header != 'Time') {
+                        // $dataRow[$header] = floatval($dataRowParts[$idx]);
+                        $dataTypeCollection->addValueToDataType($header, floatval($dataRowParts[$idx]));
+                    } else {
+                        // $dataRow[$header] = $dataRowParts[$idx];
+                        $formatedDateTime = $this->formatCsvDateTime($dataRowParts[$idx]);
+                        $dataTypeCollection->addValueToDataType($header, $formatedDateTime);
+                    }
+                }
+            }
+        }
+    }
+
+    public function convertDataTypeCollectionToChartJS(DataTypeCollection $dataTypeCollection)
+    {
+        $dataSets = array();
+        $xAxisLabels = $dataTypeCollection->getDataType('Time')->getValues();
+
+        foreach ($dataTypeCollection->getDataTypes() as $dataType) {
+            if ($dataType->getName() != 'Time') {
+                $dataSet = new ChartDataSet();
+                $dataSet->label = $dataType->getName();
+                $dataSet->data = $dataType->getValues();
+
+                $dataSets[$dataType->getName()] = $dataSet;
+            }
+        }
+
         return array('xAxisLabels' => array($xAxisLabels), 'datasets' => array($dataSets));
     }
 

@@ -12,6 +12,7 @@ namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\VescLogInterpreter;
 use louwii\vescloginterpreter\models\ChartDataSet;
+use louwii\vescloginterpreter\models\DataTypeCollection;
 
 use Craft;
 use craft\base\Component;
@@ -58,10 +59,10 @@ class Main extends Component
         {
             $settings = array();
             $headers = array();
-            $values = array();
+            $dataTypeCollection = new DataTypeCollection();
             $dataPoints = array();
             $lineCount = 0;
-            $headersRead = FALSE;
+            $headersRead = false;
 
             while (($line = fgets($handle)) !== false) {
                 // process the line read.
@@ -74,12 +75,13 @@ class Main extends Component
                 {
                     // Treat this line as the headers for the data
                     $headers = $this->parseHeaders($line);
-                    $headersRead = TRUE;
+                    $headersRead = true;
                 }
                 else
                 {
                     // Data row
                     $dataPoints[] = $this->dataConverter->convertCsvToDataPoint($headers, $line);
+                    $this->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
                 }
             }
             fclose($handle);
@@ -126,7 +128,7 @@ class Main extends Component
             //     $datasets = array($datasets);
             // }
 
-            return $this->dataConverter->convertDataPointsToChartJS($dataPoints);
+            return $this->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
         }
         else
         {
