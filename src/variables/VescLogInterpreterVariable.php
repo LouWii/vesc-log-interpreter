@@ -78,15 +78,13 @@ class VescLogInterpreterVariable
     public function vescLogDataAxisLabels()
     {
         $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
+        if (!$timestamp) {
             return array('No log to look for.');
         }
 
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!is_array($data) || $data['axisLabels'] === NULL)
-        {
+        if (!is_array($data) || $data['axisLabels'] === NULL) {
             return array('No data found for that log.');
         }
 
@@ -105,22 +103,19 @@ class VescLogInterpreterVariable
     public function vescLogDataDatasets()
     {
         $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
+        if (!$timestamp) {
             return array('No log to look for.');
         }
 
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
-        if (!is_array($data) || $data['datasets'] === NULL)
-        {
+        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+        if (!is_array($data) || $data['datasets'] === NULL) {
             return array('No data found for that log.');
         }
 
         // Need to convert all datasets arrays as they don't use int indexes, but strings
         // json_encode will transform those to Objects and we don't want that
         $returnArray = array();
-        foreach ($data['datasets'] as $datasetPart)
-        {
+        foreach ($data['datasets'] as $datasetPart) {
             $returnArray[] = array_values($datasetPart);
         }
         return json_encode($returnArray);
@@ -136,15 +131,13 @@ class VescLogInterpreterVariable
     public function vescLogDataErrors()
     {
         $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
+        if (!$timestamp) {
             return array('No log to look for.');
         }
 
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+        $data = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!is_array($data) || $data['errors'] === NULL)
-        {
+        if (!is_array($data) || $data['errors'] === NULL) {
             return array('No data found for that log.');
         }
 

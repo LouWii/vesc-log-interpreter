@@ -14,7 +14,7 @@ use louwii\vescloginterpreter\models\ChartDataSet;
 use louwii\vescloginterpreter\models\DataPoint;
 use louwii\vescloginterpreter\models\DataTypeCollection;
 
-use craft\base\Component;
+use yii\base\Component;
 
 /**
  * DataConverter Service

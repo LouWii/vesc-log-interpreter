@@ -83,55 +83,48 @@ class ProcessController extends Controller
 
         $this->requirePostRequest();
 
+        $result = Craft::$app->getRequest()->resolve();
+
         $errors = array();
         $datasets = array();
         $xAxisLabels = array();
 
-        if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '')
-        {
+        if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '') {
             $uploadedFile = $_FILES['vescLogFile'];
             $fileError = $uploadedFile['error'];
-            if (!$fileError)
-            {
+            
+            if (!$fileError) {
                 $filename = $uploadedFile['name'];
                 $fileAbsolutePath = $uploadedFile['tmp_name'];
                 $filenameParts = explode('.', $filename);
                 $extension = end($filenameParts);
 
-                if (!in_array($extension, $this->validExtensions))
-                {
+                if (!in_array($extension, $this->validExtensions)) {
                     $errors[] = "$filename has an invalid extension.";
                 }
 
-                $result = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
-                if (!is_array($result))
-                {
+                $result = VescLogInterpreter::getInstance()->main->parseLogFile($fileAbsolutePath);
+
+                if (!is_array($result)) {
                     $errors[] = $result;
-                }
-                else
-                {
+                } else {
                     $datasets = $result['datasets'];
                     $xAxisLabels = $result['xAxisLabels'];
                 }
             }
-        }
-        else
-        {
+        } else {
             $errors[] = 'No file sent';
         }
 
         // Put all our data in cache so it can be displayed after the redirect
         $date = new \DateTime();
         $timestamp = $date->getTimestamp();
-        VescLogInterpreter::$plugin->main->cacheData($timestamp, $xAxisLabels, $datasets, $errors);
+        VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $xAxisLabels, $datasets, $errors);
 
         // Redirect to provided page in POST
-        if (array_key_exists('redirect', $_POST))
-        {
+        if (array_key_exists('redirect', $_POST)) {
             $redirect = $_POST['redirect'];
-        }
-        else
-        {
+        } else {
             $redirect = '/';
         }
 

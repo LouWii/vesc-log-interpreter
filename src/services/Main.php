@@ -14,8 +14,7 @@ use louwii\vescloginterpreter\VescLogInterpreter;
 use louwii\vescloginterpreter\models\ChartDataSet;
 use louwii\vescloginterpreter\models\DataTypeCollection;
 
-use Craft;
-use craft\base\Component;
+use yii\base\Component;
 
 /**
  * Main Service
@@ -32,13 +31,6 @@ use craft\base\Component;
  */
 class Main extends Component
 {
-    private $dataConverter;
-
-    public function __construct()
-    {
-        $this->dataConverter = new DataConverter();
-    }
-
     // Public Methods
     // =========================================================================
 
@@ -46,7 +38,7 @@ class Main extends Component
     /**
      * Parse the entire Vesc log file
      * 
-     *      VescLogInterpreter::$plugin->main->parseLogFile($filePath)
+     *      VescLogInterpreter::getInstance()->main->parseLogFile($filePath)
      *
      * @param string $filePath
      * @param boolean|integer $sumUp False to not sum up values, or integer value to reduce log to $sumUp points
@@ -55,8 +47,7 @@ class Main extends Component
     public function parseLogFile($filePath, $sumUp = false)
     {
         $handle = fopen($filePath, "r");
-        if ($handle)
-        {
+        if ($handle) {
             $settings = array();
             $headers = array();
             $dataTypeCollection = new DataTypeCollection();
@@ -66,28 +57,22 @@ class Main extends Component
 
             while (($line = fgets($handle)) !== false) {
                 // process the line read.
-                if ($lineCount == 0 && substr($line, 0, 2) == '//')
-                {
+                if ($lineCount == 0 && substr($line, 0, 2) == '//') {
                     // Settings line
                     $settings = $this->parseSettings($line);
-                }
-                elseif (!$headersRead)
-                {
+                } elseif (!$headersRead) {
                     // Treat this line as the headers for the data
                     $headers = $this->parseHeaders($line);
                     $headersRead = true;
-                }
-                else
-                {
+                } else {
                     // Data row
-                    $dataPoints[] = $this->dataConverter->convertCsvToDataPoint($headers, $line);
-                    $this->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
+                    $dataPoints[] = VescLogInterpreter::getInstance()->dataConverter->convertCsvToDataPoint($headers, $line);
+                    VescLogInterpreter::getInstance()->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
                 }
             }
             fclose($handle);
 
-            if (count($dataPoints) == 0)
-            {
+            if (count($dataPoints) == 0) {
                 return 'Couldn\'t find any row containing data.';
             }
 
@@ -128,10 +113,8 @@ class Main extends Component
             //     $datasets = array($datasets);
             // }
 
-            return $this->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
-        }
-        else
-        {
+            return VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
+        } else {
             return 'Couldn\'t read the file after upload.';
         }
     }
@@ -146,11 +129,9 @@ class Main extends Component
     {
         $settings = array();
         $settingsParts = explode(',', $line);
-        foreach ($settingsParts as $settingItem)
-        {
+        foreach ($settingsParts as $settingItem) {
             $itemParts = explode('=', $settingItem);
-            if (count($itemParts) == 2)
-            {
+            if (count($itemParts) == 2) {
                 $settings[str_replace(array('_', '//'), array(' ', ''), $itemParts[0])] = $itemParts[1];
             }
         }
@@ -168,8 +149,7 @@ class Main extends Component
     {
         $headers = array();
         $headersParts = explode(',', $line);
-        foreach ($headersParts as $headerItem)
-        {
+        foreach ($headersParts as $headerItem) {
             $headers[] = $headerItem;
         }
 
@@ -187,22 +167,15 @@ class Main extends Component
     {
         $dataRow = array();
         $dataRowParts = explode(',', $line);
-        if (count($dataRowParts) == count($headers))
-        {
-            foreach ($headers as $idx => $header)
-            {
-                if ($header != 'Time')
-                {
+        if (count($dataRowParts) == count($headers)) {
+            foreach ($headers as $idx => $header) {
+                if ($header != 'Time') {
                     $dataRow[$header] = floatval($dataRowParts[$idx]);
-                }
-                else
-                {
+                } else {
                     $dataRow[$header] = $dataRowParts[$idx];
                 }
             }
-        }
-        else
-        {
+        } else {
             throw new Exception('Got '.count($headers).' headers and '.count($dataRowParts).' data items, cannot parse data');
         }
 
@@ -215,10 +188,8 @@ class Main extends Component
 
         $dataSetsNotWanted = array('Time', 'TimePassedInMs');
 
-        foreach ($headers as $header)
-        {
-            if (!in_array($header, $dataSetsNotWanted))
-            {
+        foreach ($headers as $header) {
+            if (!in_array($header, $dataSetsNotWanted)) {
                 $dataSet = new ChartDataSet();
                 $dataSet->label = $header;
 
@@ -226,84 +197,14 @@ class Main extends Component
             }
         }
 
-        foreach ($values as $value)
-        {
-            foreach ($headers as $header)
-            {
-                if (!in_array($header, $dataSetsNotWanted))
-                {
+        foreach ($values as $value) {
+            foreach ($headers as $header) {
+                if (!in_array($header, $dataSetsNotWanted)) {
                     $dataSets[$header]->data[] = $value[$header];
                 }
             }
         }
 
         return $dataSets;
-    }
-
-    public function getDatasetsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--datasets--'.$timestamp;
-    }
-
-    public function getAxisLabelsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--axis_labels--'.$timestamp;
-    }
-
-    public function getErrorsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--errors--'.$timestamp;
-    }
-
-    /**
-     * Cache processed data with a unique ID, to be able to keep it for later
-     *
-     * @param int $timestamp
-     * @param array $datasets
-     * @param array $errors
-     * @return bool True if caching worked, false otherwise
-     */
-    public function cacheData($timestamp, $axisLabels, $datasets, $errors)
-    {
-        // Cache processed data
-        // Use https://yii2-cookbook.readthedocs.io/caching/
-        // Use timestamp to create unique IDs and avoid collision if people submits at the same time
-        if ($datasets != NULL && count($datasets) > 0)
-        {
-            // If datasets exist, keep the data for a week
-            $cacheTTL = 60*60*24*7;
-        }
-        else
-        {
-            // If no dataset, then it means process failed, no need to keep it for long
-            $cacheTTL = 3600;
-        }
-
-        return
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp), $datasets, $cacheTTL)
-            &&
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp), $axisLabels, $cacheTTL)
-            &&
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp), $errors, $cacheTTL)
-            ;
-    }
-
-    /**
-     * Retrieve data from the cache
-     *
-     * @param [type] $timestamp
-     * @return void
-     */
-    public function retrieveCachedData($timestamp)
-    {
-        $xAxisLabels = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp));
-        $datasets = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp));
-        $errors = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp));
-
-        return array(
-            'axisLabels' => $xAxisLabels,
-            'datasets' => $datasets,
-            'errors' => $errors
-        );
     }
 }
