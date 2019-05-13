@@ -111,10 +111,9 @@ class DataConverter extends Component
             foreach ($headers as $idx => $header) {
                 if (!in_array($header, $ignore)) {
                     if ($header != 'Time') {
-                        // $dataRow[$header] = floatval($dataRowParts[$idx]);
+                        // TODO: casting to float is not correct for some value types
                         $dataTypeCollection->addValueToDataType($header, floatval($dataRowParts[$idx]));
                     } else {
-                        // $dataRow[$header] = $dataRowParts[$idx];
                         $formatedDateTime = $this->formatCsvDateTime($dataRowParts[$idx]);
                         $dataTypeCollection->addValueToDataType($header, $formatedDateTime);
                     }

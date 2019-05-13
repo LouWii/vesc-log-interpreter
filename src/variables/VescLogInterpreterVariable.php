@@ -174,7 +174,7 @@ class VescLogInterpreterVariable
      * or
      * {{ craft.vescLogInterpreter.vescLogDataMaxValues('MotorCurrent') }}
      * 
-     * @return array
+     * @return mixed
      */
     public function vescLogDataMaxValues($valueType = null)
     {
@@ -197,5 +197,67 @@ class VescLogInterpreterVariable
         }
 
         return $parsedData->getMaxValues();
+    }
+
+    /**
+     * Retrieve an array containing all min values for the different types
+     * 
+     * {{ craft.vescLogInterpreter.vescLogDataMinValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataMinValues('MotorCurrent') }}
+     * 
+     * @return mixed
+     */
+    public function vescLogDataMinValues($valueType = null)
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return null;
+        }
+
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getMinValues() === NULL) {
+            return null;
+        }
+
+        if ($valueType) {
+            if (array_key_exists($valueType, $parsedData->getMinValues())) {
+                return $parsedData->getMinValues()[$valueType];
+            }
+            return null;
+        }
+
+        return $parsedData->getMinValues();
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogDataAverageValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataAverageValues('MotorCurrent') }}
+     * 
+     * @return mixed
+     */
+    public function vescLogDataAverageValues($valueType = null)
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return null;
+        }
+
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getAverageValues() === NULL) {
+            return null;
+        }
+
+        if ($valueType) {
+            if (array_key_exists($valueType, $parsedData->getAverageValues())) {
+                return $parsedData->getAverageValues()[$valueType];
+            }
+            return null;
+        }
+
+        return $parsedData->getAverageValues();
     }
 }

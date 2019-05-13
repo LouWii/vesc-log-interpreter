@@ -27,6 +27,10 @@ class DataType extends Model
 
     private $values;
 
+    private $cachedMax = null;
+    private $cachedMin = null;
+    private $cachedAverage = null;
+
     public function __construct(string $name)
     {
         $this->name = $name;
@@ -53,7 +57,7 @@ class DataType extends Model
         } else {
             $this->values[$key] = $value;
         }
-        
+        $this->resetCache();
     }
 
     /**
@@ -62,6 +66,17 @@ class DataType extends Model
     public function getValues()
     {
         return $this->values;
+        return array_values($this->values);
+    }
+
+    public function getValuesWithKey()
+    {
+        return $this->values;
+    }
+
+    public function hasValues()
+    {
+        return count($this->values) > 0;
     }
 
     /**
@@ -69,14 +84,10 @@ class DataType extends Model
      */
     public function getMaxValue()
     {
-        $maxValue = PHP_INT_MIN;
-        foreach ($this->values as $value) {
-            if ($value > $maxValue) {
-                $maxValue = $value;
-            }
+        if ($this->cachedMax == null) {
+            $this->calculateMinMaxAverage();
         }
-
-        return $maxValue;
+        return $this->cachedMax;
     }
 
     /**
@@ -84,13 +95,49 @@ class DataType extends Model
      */
     public function getMinValue()
     {
+        if ($this->cachedMin == null) {
+            $this->calculateMinMaxAverage();
+        }
+        return $this->cachedMin;
+    }
+
+    /**
+     * Get the average value
+     */
+    public function getAverageValue()
+    {
+        if ($this->cachedAverage == null) {
+            $this->calculateMinMaxAverage();
+        }
+        return $this->cachedAverage;
+    }
+
+    private function calculateMinMaxAverage()
+    {
         $minValue = PHP_INT_MAX;
+        $maxValue = PHP_INT_MIN;
+        $total = 0.0;
         foreach ($this->values as $value) {
             if ($value < $minValue) {
                 $minValue = $value;
             }
+            if ($value > $maxValue) {
+                $maxValue = $value;
+            }
+            if (is_int($value) || is_float($value) || is_double($value)) {
+                $total += $value;
+            }
         }
 
-        return $minValue;
+        $this->cachedMax = $maxValue;
+        $this->cachedMin = $minValue;
+        $this->cachedAverage = round((float)$total/count($this->values), 2);
+    }
+
+    private function resetCache()
+    {
+        $this->cachedMin = null;
+        $this->cachedMax = null;
+        $this->cachedAverage = null;
     }
 }

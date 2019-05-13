@@ -55,15 +55,18 @@ class DataTypeCollection extends Model
     /**
      * Add a value to a data type in the collection
      * If DataType doesn't exist, it''ll be created
+     * @param string $typeName
+     * @param mixed $value
+     * @param mixed $valueKey A key to associate the value with
      */
-    public function addValueToDataType(string $typeName, $value)
+    public function addValueToDataType(string $typeName, $value, $valueKey = null)
     {
         if (!array_key_exists($typeName, $this->dataTypes)) {
             $dataType = new DataType($typeName);
             $this->dataTypes[$typeName] = $dataType;
         }
 
-        $this->dataTypes[$typeName]->addValue($value);
+        $this->dataTypes[$typeName]->addValue($value, $valueKey);
     }
 
     /**
@@ -96,5 +99,31 @@ class DataTypeCollection extends Model
         }
 
         return $minValues;
+    }
+
+    /**
+     * Get an array containing the average value for each type
+     */
+    public function getAverageValues()
+    {
+        $averageValues = array();
+
+        foreach ($this->dataTypes as $dataType) {
+            $averageValues[$dataType->getName()] = $dataType->getAverageValue();
+        }
+
+        return $averageValues;
+    }
+
+    public function hasValues()
+    {
+        if (count($this->dataTypes)) {
+            foreach ($this->dataTypes as $dataType) {
+                if ($dataType->hasValues()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

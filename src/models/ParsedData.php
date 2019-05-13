@@ -31,6 +31,8 @@ class ParsedData extends Model
 
     private $minValues;
 
+    private $averageValues;
+
     public function __construct()
     {
         $this->parsingErrors = array();
@@ -84,5 +86,15 @@ class ParsedData extends Model
     public function setMinValues($minValues)
     {
         $this->minValues = $minValues;
+    }
+
+    public function getAverageValues()
+    {
+        return $this->averageValues;
+    }
+
+    public function setAverageValues($averageValues)
+    {
+        $this->averageValues = $averageValues;
     }
 }

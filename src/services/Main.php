@@ -39,13 +39,12 @@ class Main extends Component
     /**
      * Parse the entire Vesc log file
      * 
-     *      VescLogInterpreter::getInstance()->main->parseLogFile($filePath)
+     * VescLogInterpreter::getInstance()->main->parseLogFile($filePath)
      *
      * @param string $filePath
-     * @param boolean|integer $sumUp False to not sum up values, or integer value to reduce log to $sumUp points
      * @return mixed
      */
-    public function parseLogFile($filePath, $sumUp = false)
+    public function parseLogFile($filePath)
     {
         $handle = fopen($filePath, "r");
         if ($handle) {
@@ -66,15 +65,18 @@ class Main extends Component
                     $headers = $this->parseHeaders($line);
                     $headersRead = true;
                 } else {
-                    // Data row
-                    $dataPoints[] = VescLogInterpreter::getInstance()->dataConverter->convertCsvToDataPoint($headers, $line);
+                    // DataPoints are currently not used
+                    // Mainly because the format makes it harder to convert for ChartJS usage
+                    // But keeping the logic for now
+                    // $dataPoints[] = VescLogInterpreter::getInstance()->dataConverter->convertCsvToDataPoint($headers, $line);
+                    
                     VescLogInterpreter::getInstance()->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
                 }
             }
             fclose($handle);
 
-            if (count($dataPoints) == 0) {
-                return 'Couldn\'t find any row containing data.';
+            if (!$dataTypeCollection->hasValues()) {
+                throw new \Exception('Couldn\'t find any row containing data.');
             }
 
             // ChartJS seems to have issues with too many values
@@ -121,10 +123,11 @@ class Main extends Component
             $parsedData->setDataSets($chartData['datasets']);
             $parsedData->setMaxValues($dataTypeCollection->getMaxValues());
             $parsedData->setMinValues($dataTypeCollection->getMinValues());
+            $parsedData->setAverageValues($dataTypeCollection->getAverageValues());
 
             return $parsedData;
         } else {
-            return 'Couldn\'t read the file after upload.';
+            throw new \Exception('Couldn\'t read the file after upload.');
         }
     }
 
@@ -163,31 +166,5 @@ class Main extends Component
         }
 
         return $headers;
-    }
-
-    public function createDataSets($headers, $values)
-    {
-        $dataSets = array();
-
-        $dataSetsNotWanted = array('Time', 'TimePassedInMs');
-
-        foreach ($headers as $header) {
-            if (!in_array($header, $dataSetsNotWanted)) {
-                $dataSet = new ChartDataSet();
-                $dataSet->label = $header;
-
-                $dataSets[$header] = $dataSet;
-            }
-        }
-
-        foreach ($values as $value) {
-            foreach ($headers as $header) {
-                if (!in_array($header, $dataSetsNotWanted)) {
-                    $dataSets[$header]->data[] = $value[$header];
-                }
-            }
-        }
-
-        return $dataSets;
     }
 }
