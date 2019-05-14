@@ -53,8 +53,12 @@ class Main extends Component
             $dataTypeCollection = new DataTypeCollection();
             $dataPoints = array();
             $lineCount = 0;
+            $lastLine = null;
             $headersRead = false;
+            $dateTimeStart = null;
+            $dateTimeEnd = null;
 
+            // TODO: limit loop count (if someones uploads a 10000000 lines csv...)
             while (($line = fgets($handle)) !== false) {
                 // process the line read.
                 if ($lineCount == 0 && substr($line, 0, 2) == '//') {
@@ -69,11 +73,22 @@ class Main extends Component
                     // Mainly because the format makes it harder to convert for ChartJS usage
                     // But keeping the logic for now
                     // $dataPoints[] = VescLogInterpreter::getInstance()->dataConverter->convertCsvToDataPoint($headers, $line);
-                    
+
                     VescLogInterpreter::getInstance()->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
+
+                    if ($dateTimeStart == null) {
+                        $dateTimeStart = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $line);
+                    }
+
+                    if (strlen($line) > 5) {
+                        $lastLine = $line;
+                    }
                 }
             }
             fclose($handle);
+
+            // Use last line to get last DateTime
+            $dateTimeEnd = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $lastLine);
 
             if (!$dataTypeCollection->hasValues()) {
                 throw new \Exception('Couldn\'t find any row containing data.');
@@ -124,6 +139,11 @@ class Main extends Component
             $parsedData->setMaxValues($dataTypeCollection->getMaxValues());
             $parsedData->setMinValues($dataTypeCollection->getMinValues());
             $parsedData->setAverageValues($dataTypeCollection->getAverageValues());
+
+            if ($dateTimeStart != null && $dateTimeEnd != null) {
+                $duration = $dateTimeStart->diff($dateTimeEnd);
+                $parsedData->setDuration($duration);
+            }
 
             return $parsedData;
         } else {

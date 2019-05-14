@@ -140,6 +140,20 @@ class DataConverter extends Component
         return array('xAxisLabels' => array($xAxisLabels), 'datasets' => array($dataSets));
     }
 
+    public function getDateTimeFromCsv(array $headers, string $csvLine)
+    {
+        $dataRowParts = explode(',', $csvLine);
+        if (count($dataRowParts) == count($headers)) {
+            foreach ($headers as $idx => $header) {
+                if ($header == 'Time') {
+                    return new \DateTime($this->formatCsvDateTime($dataRowParts[$idx]));
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Convert a date & time string from CSV to a properly formatted string for DateTime object
      * '22_01_2018_22_43_04.657' to '2018-01-22 22:43:04.657'

@@ -260,4 +260,23 @@ class VescLogInterpreterVariable
 
         return $parsedData->getAverageValues();
     }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogDataDuration }}
+     */
+    public function vescLogDataDuration()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return null;
+        }
+
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getDuration() === NULL) {
+            return null;
+        }
+
+        return $parsedData->getDuration();
+    }
 }

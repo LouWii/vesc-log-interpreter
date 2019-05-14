@@ -33,6 +33,8 @@ class ParsedData extends Model
 
     private $averageValues;
 
+    private $duration;
+
     public function __construct()
     {
         $this->parsingErrors = array();
@@ -96,5 +98,15 @@ class ParsedData extends Model
     public function setAverageValues($averageValues)
     {
         $this->averageValues = $averageValues;
+    }
+
+    public function getDuration()
+    {
+        return $this->duration;
+    }
+
+    public function setDuration($duration)
+    {
+        return $this->duration = $duration;
     }
 }
