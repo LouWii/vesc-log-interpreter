@@ -35,6 +35,8 @@ class ParsedData extends Model
 
     private $duration;
 
+    private $geolocation;
+
     public function __construct()
     {
         $this->parsingErrors = array();
@@ -108,5 +110,15 @@ class ParsedData extends Model
     public function setDuration($duration)
     {
         return $this->duration = $duration;
+    }
+
+    public function getGeolocation()
+    {
+        return $this->geolocation;
+    }
+
+    public function setGeolocation($geolocation)
+    {
+        $this->geolocation = $geolocation;
     }
 }

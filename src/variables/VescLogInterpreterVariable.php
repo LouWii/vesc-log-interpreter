@@ -279,4 +279,23 @@ class VescLogInterpreterVariable
 
         return $parsedData->getDuration();
     }
+
+    /**
+     * {{ craft.vescLogInterpreter.vesLogDataGeolocation }}
+     */
+    public function vesLogDataGeolocation()
+    {
+        $timestamp = Craft::$app->request->get('log');
+        if (!$timestamp) {
+            return null;
+        }
+
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
+
+        if (!$parsedData instanceof ParsedData || $parsedData->getGeolocation() === NULL || count($parsedData->getGeolocation()) == 0) {
+            return null;
+        }
+
+        return $parsedData->getGeolocation();
+    }
 }

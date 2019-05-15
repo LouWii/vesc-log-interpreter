@@ -28,7 +28,8 @@ class DataConverter extends Component
     /**
      * "Convert" a line of a CSV file to a DataPoint object
      */
-    public function convertCsvToDataPoint(array $headers, string $csvLine, array $ignore = array('TimePassedInMs'))
+    public function convertCsvToDataPoint(
+        array $headers, string $csvLine, array $ignore = array('TimePassedInMs', 'Latitude', 'Longitude'))
     {
         $dataRow = array();
         $dataRowParts = explode(',', $csvLine);
@@ -103,7 +104,7 @@ class DataConverter extends Component
     /**
      * Parse line from CSV file and add values to a DataTypeCollection
      */
-    public function addCsvDataToDataTypeCollection(array $headers, string $csvLine, DataTypeCollection $dataTypeCollection, array $ignore = array('TimePassedInMs'))
+    public function addCsvDataToDataTypeCollection(array $headers, string $csvLine, DataTypeCollection $dataTypeCollection, array $ignore = array('TimePassedInMs', 'Latitude', 'Longitude'))
     {
         $dataRowParts = explode(',', $csvLine);
         if (count($dataRowParts) == count($headers)) {
@@ -149,6 +150,37 @@ class DataConverter extends Component
                     return new \DateTime($this->formatCsvDateTime($dataRowParts[$idx]));
                 }
             }
+        }
+
+        return null;
+    }
+
+    public function getCoordinatesFromCsv(array $headers, string $csvLine)
+    {
+        $latitude = null;
+        $longitude = null;
+        $timeStr = null;
+        $dataRowParts = explode(',', $csvLine);
+        if (count($dataRowParts) == count($headers)) {
+            foreach ($headers as $idx => $header) {
+                if ($header == 'Time') {
+                    $timeStr = $this->formatCsvDateTime($dataRowParts[$idx]);
+                } elseif ($header == 'Latitude') {
+                    $latitude = floatval($dataRowParts[$idx]);
+                } elseif ($header == 'Longitude') {
+                    $longitude = floatval($dataRowParts[$idx]);
+                }
+            }
+        }
+
+        if ($latitude && $longitude && $timeStr) {
+            return array(
+                'timeStr' => $timeStr,
+                'coordinates' => array(
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                )
+            );
         }
 
         return null;

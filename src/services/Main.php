@@ -57,6 +57,7 @@ class Main extends Component
             $headersRead = false;
             $dateTimeStart = null;
             $dateTimeEnd = null;
+            $geoloc = array();
 
             // TODO: limit loop count (if someones uploads a 10000000 lines csv...)
             while (($line = fgets($handle)) !== false) {
@@ -78,6 +79,11 @@ class Main extends Component
 
                     if ($dateTimeStart == null) {
                         $dateTimeStart = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $line);
+                    }
+
+                    $coordinates = VescLogInterpreter::getInstance()->dataConverter->getCoordinatesFromCsv($headers, $line);
+                    if ($coordinates) {
+                        $geoloc[] = $coordinates;
                     }
 
                     if (strlen($line) > 5) {
@@ -143,6 +149,10 @@ class Main extends Component
             if ($dateTimeStart != null && $dateTimeEnd != null) {
                 $duration = $dateTimeStart->diff($dateTimeEnd);
                 $parsedData->setDuration($duration);
+            }
+
+            if (count($geoloc) > 0) {
+                $parsedData->setGeolocation($geoloc);
             }
 
             return $parsedData;
