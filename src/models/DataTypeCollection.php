@@ -141,4 +141,18 @@ class DataTypeCollection extends Model
         }
         return false;
     }
+
+    public function checkDataIntegrity()
+    {
+        $dataCount = -1;
+        foreach ($this->dataTypes as $dataType) {
+            if ($dataCount == -1) {
+                $dataCount = count($dataType->getValues());
+            } else {
+                if ($dataCount != count($dataType->getValues())) {
+                    throw new \Exception('Expected ' . $dataType->getName() . ' to have ' . $dataCount . ' values but got ' . count($dataType->getValues()) . ' instead');
+                }
+            }
+        }
+    }
 }

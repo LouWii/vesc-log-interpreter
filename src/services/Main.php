@@ -147,6 +147,8 @@ class Main extends Component
             // Reduce our data to 1 value per second
             $dataTypeCollection->reduceAllDataTypeDataPerSecond();
 
+            $dataTypeCollection->checkDataIntegrity();
+
             $chartData = VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
 
             $parsedData = new ParsedData();

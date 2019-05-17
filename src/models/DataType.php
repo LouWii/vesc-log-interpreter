@@ -153,10 +153,14 @@ class DataType extends Model
         $previousTime = '';
         foreach ($this->values as $time => $value) {
             $timeParts = explode('.', $time); // Remove milliseconds
+            if ($previousTime == '') {
+                $previousTime = $timeParts[0];
+            }
             if ($previousTime == $timeParts[0]) {
                 $tempSameSecondValues[] = $value;
             } else {
                 // We're onto a new second
+                
                 if (count($tempSameSecondValues) > 0) {
                     $totalValues = 0;
                     foreach ($tempSameSecondValues as $tempValue) {
@@ -164,11 +168,19 @@ class DataType extends Model
                     }
                     $averageValue = (float)$totalValues / count($tempSameSecondValues);
                     $reducedValues[$previousTime] = round($averageValue, 2);
-                    $tempSameSecondValues = array();
+                    $tempSameSecondValues = array($value);
                 }
                 $previousTime = $timeParts[0];
             }
         }
+
+        // Remaining values
+        $totalValues = 0;
+        foreach ($tempSameSecondValues as $tempValue) {
+            $totalValues += $tempValue;
+        }
+        $averageValue = (float)$totalValues / count($tempSameSecondValues);
+        $reducedValues[$previousTime] = round($averageValue, 2);
 
         $this->values = $reducedValues;
     }
