@@ -70,6 +70,21 @@ class DataTypeCollection extends Model
     }
 
     /**
+     * Destructive function: will process all data for each type and keep only 1 value per second
+     *  as the original data can sometime have multiple values per second
+     */
+    public function reduceAllDataTypeDataPerSecond($ignore = array('Time'))
+    {
+        foreach ($this->dataTypes as $dataType) {
+            if ($dataType->getName() == 'Time') {
+                $dataType->reduceTimeValues();
+            } else {
+                $dataType->reduceDataPerSecond();
+            }
+        }
+    }
+
+    /**
      * Get an array containing the max value for each type
      * 
      * @return array

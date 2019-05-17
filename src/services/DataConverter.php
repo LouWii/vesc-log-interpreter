@@ -108,17 +108,32 @@ class DataConverter extends Component
     {
         $dataRowParts = explode(',', $csvLine);
         if (count($dataRowParts) == count($headers)) {
-            
+
+            $tempValues = array();
+            $lineTimeStr = null;
             foreach ($headers as $idx => $header) {
                 if (!in_array($header, $ignore)) {
                     if ($header != 'Time') {
+                        // We want to associate values with date time, but we don't know if we already processed the Time column
                         // TODO: casting to float is not correct for some value types
-                        $dataTypeCollection->addValueToDataType($header, floatval($dataRowParts[$idx]));
+                        if ($lineTimeStr) {
+                            // $dataTypeCollection->addValueToDataType($header, floatval($dataRowParts[$idx]));
+                            $dataTypeCollection->addValueToDataType($header, floatval($dataRowParts[$idx]), $lineTimeStr);
+                        } else {
+                            // Temporarily store value until we have processed the Time column
+                            $tempValues[$header] = floatval($dataRowParts[$idx]);
+                        }
+                        
                     } else {
-                        $formatedDateTime = $this->formatCsvDateTime($dataRowParts[$idx]);
-                        $dataTypeCollection->addValueToDataType($header, $formatedDateTime);
+                        $lineTimeStr = $this->formatCsvDateTime($dataRowParts[$idx]);
+                        $dataTypeCollection->addValueToDataType($header, $lineTimeStr);
                     }
                 }
+            }
+
+            // Add temporary stored data if any
+            foreach ($tempValues as $valueType => $value) {
+                $dataTypeCollection->addValueToDataType($valueType, $value, $lineTimeStr);
             }
         }
     }

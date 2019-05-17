@@ -33,6 +33,8 @@ use yii\base\Component;
  */
 class Main extends Component
 {
+    protected $maxFileLineCount = 30000;
+
     // Public Methods
     // =========================================================================
 
@@ -61,6 +63,10 @@ class Main extends Component
 
             // TODO: limit loop count (if someones uploads a 10000000 lines csv...)
             while (($line = fgets($handle)) !== false) {
+                if ($lineCount > $this->maxFileLineCount) {
+                    break;
+                }
+
                 // process the line read.
                 if ($lineCount == 0 && substr($line, 0, 2) == '//') {
                     // Settings line
@@ -90,6 +96,7 @@ class Main extends Component
                         $lastLine = $line;
                     }
                 }
+                $lineCount++;
             }
             fclose($handle);
 
@@ -136,6 +143,9 @@ class Main extends Component
             //     $xAxisLabels = array($xAxisLabels);
             //     $datasets = array($datasets);
             // }
+
+            // Reduce our data to 1 value per second
+            $dataTypeCollection->reduceAllDataTypeDataPerSecond();
 
             $chartData = VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
 
