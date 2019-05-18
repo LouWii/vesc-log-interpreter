@@ -36,6 +36,8 @@ class ParsedData extends Model
     private $duration;
 
     private $geolocation;
+    
+    private $caching;
 
     public function __construct()
     {
@@ -120,5 +122,15 @@ class ParsedData extends Model
     public function setGeolocation($geolocation)
     {
         $this->geolocation = $geolocation;
+    }
+
+    public function getCaching()
+    {
+        return $this->caching;
+    }
+
+    public function setCaching($caching)
+    {
+        $this->caching = $caching;
     }
 }

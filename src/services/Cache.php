@@ -43,14 +43,29 @@ class Cache extends Component
         // Use https://yii2-cookbook.readthedocs.io/caching/
         // Use timestamp to create unique IDs and avoid collision if people submits at the same time
         if ($parsedData != NULL && count($parsedData->getDataSets()) > 0) {
-            // If datasets exist, keep the data for a week
-            $cacheTTL = 60*60*24*7;
+            if ($parsedData->getCaching()) {
+                // If datasets exist and caching enabled, keep result for a week
+                $cacheTTL = 60*60*24*7;
+            } else {
+                // No caching, store it for 2 min, time for the user to have the page displayed (worst case scenario)
+                $cacheTTL = 60*2;
+            }
         } else {
             // If no dataset, then it means process failed, no need to keep it for long
             $cacheTTL = 3600;
         }
 
         return Craft::$app->cache->set($this->getParsedDataCacheId($timestamp), $parsedData, $cacheTTL);
+    }
+
+    /**
+     * Delete a parsed data result from the cache
+     * @param int $timestamp
+     * @return bool True if deletion worked, false otherwise
+     */
+    public function deleteCachedData($timestamp)
+    {
+        return Craft::$app->cache->delete($this->getParsedDataCacheId($timestamp));
     }
 
     /**

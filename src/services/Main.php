@@ -44,9 +44,10 @@ class Main extends Component
      * VescLogInterpreter::getInstance()->main->parseLogFile($filePath)
      *
      * @param string $filePath
+     * @param bool $processGeoloc
      * @return mixed
      */
-    public function parseLogFile($filePath)
+    public function parseLogFile(string $filePath, $processGeoloc = true)
     {
         $handle = fopen($filePath, "r");
         if ($handle) {
@@ -61,7 +62,6 @@ class Main extends Component
             $dateTimeEnd = null;
             $geoloc = array();
 
-            // TODO: limit loop count (if someones uploads a 10000000 lines csv...)
             while (($line = fgets($handle)) !== false) {
                 if ($lineCount > $this->maxFileLineCount) {
                     break;
@@ -87,9 +87,11 @@ class Main extends Component
                         $dateTimeStart = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $line);
                     }
 
-                    $coordinates = VescLogInterpreter::getInstance()->dataConverter->getCoordinatesFromCsv($headers, $line);
-                    if ($coordinates) {
-                        $geoloc[] = $coordinates;
+                    if ($processGeoloc) {
+                        $coordinates = VescLogInterpreter::getInstance()->dataConverter->getCoordinatesFromCsv($headers, $line);
+                        if ($coordinates) {
+                            $geoloc[] = $coordinates;
+                        }
                     }
 
                     if (strlen($line) > 5) {

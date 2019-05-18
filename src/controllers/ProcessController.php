@@ -81,10 +81,17 @@ class ProcessController extends Controller
     public function actionVescLog()
     {
         // Check https://gist.github.com/sathoro/8178981 for inspiration
-
         $this->requirePostRequest();
 
-        $requestResult = Craft::$app->getRequest()->resolve();
+        $processGeoloc = true;
+        if (Craft::$app->getRequest()->getBodyParam('noGeoloc') === 'yes') {
+            $processGeoloc = false;
+        }
+
+        $cacheResults = true;
+        if (Craft::$app->getRequest()->getBodyParam('noCache') === 'yes') {
+            $cacheResults = false;
+        }
 
         $errors = array();
         $result = null;
@@ -104,7 +111,10 @@ class ProcessController extends Controller
                 }
 
                 // TODO: use try/catch here and throw exceptions during parsing instead of returning a string
-                $result = VescLogInterpreter::getInstance()->main->parseLogFile($fileAbsolutePath);
+                $result = VescLogInterpreter::getInstance()->main->parseLogFile(
+                    $fileAbsolutePath,
+                    $processGeoloc
+                );
 
                 if (!$result instanceof ParsedData) {
                     $errors[] = $result;
@@ -122,6 +132,9 @@ class ProcessController extends Controller
             $result = new ParsedData();
             $result->setParsingErrors($errors);
         }
+
+        $result->setCaching($cacheResults);
+
         if (!VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $result)) {
             throw new \Exception('Caching the parsed results failed');
         }
