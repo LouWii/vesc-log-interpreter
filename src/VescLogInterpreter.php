@@ -11,6 +11,7 @@
 namespace louwii\vescloginterpreter;
 
 use louwii\vescloginterpreter\services\Cache as CacheService;
+use louwii\vescloginterpreter\services\DataCleaner as DataCleanerService;
 use louwii\vescloginterpreter\services\DataConverter as DataConverterService;
 use louwii\vescloginterpreter\services\Main as MainService;
 use louwii\vescloginterpreter\variables\VescLogInterpreterVariable;
@@ -62,6 +63,7 @@ class VescLogInterpreter extends Plugin
 
         $this->setComponents(array(
             'cache' => CacheService::class,
+            'dataCleaner' => DataCleanerService::class,
             'dataConverter' => DataConverterService::class,
             'main' => MainService::class
         ));

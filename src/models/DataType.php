@@ -73,6 +73,11 @@ class DataType extends Model
         return $this->values;
     }
 
+    public function setValues($values)
+    {
+        $this->values = $values;
+    }
+
     public function hasValues()
     {
         return count($this->values) > 0;
@@ -140,66 +145,5 @@ class DataType extends Model
         $this->cachedMin = null;
         $this->cachedMax = null;
         $this->cachedAverage = null;
-    }
-
-    /**
-     * Destructive function: will process all data for each type and keep only 1 value per second
-     * Note: The key of the value must be a data/time string otherwise this won't work!
-     */
-    public function reduceDataPerSecond()
-    {
-        $reducedValues = array();
-        $tempSameSecondValues = array();
-        $previousTime = '';
-        foreach ($this->values as $time => $value) {
-            $timeParts = explode('.', $time); // Remove milliseconds
-            if ($previousTime == '') {
-                $previousTime = $timeParts[0];
-            }
-            if ($previousTime == $timeParts[0]) {
-                $tempSameSecondValues[] = $value;
-            } else {
-                // We're onto a new second
-                
-                if (count($tempSameSecondValues) > 0) {
-                    $totalValues = 0;
-                    foreach ($tempSameSecondValues as $tempValue) {
-                        $totalValues += $tempValue;
-                    }
-                    $averageValue = (float)$totalValues / count($tempSameSecondValues);
-                    $reducedValues[$previousTime] = round($averageValue, 2);
-                    $tempSameSecondValues = array($value);
-                }
-                $previousTime = $timeParts[0];
-            }
-        }
-
-        // Remaining values
-        $totalValues = 0;
-        foreach ($tempSameSecondValues as $tempValue) {
-            $totalValues += $tempValue;
-        }
-        $averageValue = (float)$totalValues / count($tempSameSecondValues);
-        $reducedValues[$previousTime] = round($averageValue, 2);
-
-        $this->values = $reducedValues;
-    }
-
-    /**
-     * Destructive function: will process values as date time string to keep only 1 value per second
-     */
-    public function reduceTimeValues()
-    {
-        $reducedValues = array();
-        $previousTime = '';
-        foreach ($this->values as $value) {
-            $timeParts = explode('.', $value); // Remove milliseconds
-            if ($previousTime !== $timeParts[0]) {
-                $reducedValues[] = $timeParts[0];
-                $previousTime = $timeParts[0];
-            }
-        }
-
-        $this->values = $reducedValues;
     }
 }

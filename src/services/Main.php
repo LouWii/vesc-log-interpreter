@@ -107,45 +107,9 @@ class Main extends Component
                 throw new \Exception('Couldn\'t find any row containing data.');
             }
 
-            // ChartJS seems to have issues with too many values
-            // We're dividing data into multiple arrays/parts
-            // $sliced = FALSE;
-            // $maxPerSlice = 2000;
-            // if (count($xAxisLabels) > $maxPerSlice && (count($xAxisLabels)-$maxPerSlice) > 200)
-            // {
-            //     $sliced = TRUE;
-            //     $slicedXAxisLabels = array();
-            //     $slicedValues = array();
-            //     $offset = 0;
-            //     while( count( array_slice($xAxisLabels, $offset, $maxPerSlice) ) > 0)
-            //     {
-            //         $slicedXAxisLabels[] = array_slice($xAxisLabels, $offset, $maxPerSlice);
-            //         $slicedValues[] = array_slice($values, $offset, $maxPerSlice);
-            //         $offset += $maxPerSlice;
-            //     }
-            //     // $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
-            //     // $values = array_slice($values, 0, 4000);
-            //     $xAxisLabels = $slicedXAxisLabels;
-            //     $values = $slicedValues;
-            // }
-
-            // if ($sliced)
-            // {
-            //     $datasets = array();
-            //     foreach ($values as $valuesPart)
-            //     {
-            //         $datasets[] = $this->createDataSets($headers, $valuesPart);
-            //     }
-            // }
-            // else
-            // {
-            //     $datasets = $this->createDataSets($headers, $values);
-            //     $xAxisLabels = array($xAxisLabels);
-            //     $datasets = array($datasets);
-            // }
-
             // Reduce our data to 1 value per second
-            $dataTypeCollection->reduceAllDataTypeDataPerSecond();
+            // $dataTypeCollection->reduceAllDataTypeDataPerSecond();
+            VescLogInterpreter::getInstance()->dataCleaner->reduceDataInCollectionToOnePerSecond($dataTypeCollection);
 
             $dataTypeCollection->checkDataIntegrity();
 
@@ -164,6 +128,7 @@ class Main extends Component
             }
 
             if (count($geoloc) > 0) {
+                $geoloc = VescLogInterpreter::getInstance()->dataCleaner->reduceGeolocToOnePerSecond($geoloc);
                 $parsedData->setGeolocation($geoloc);
             }
 
