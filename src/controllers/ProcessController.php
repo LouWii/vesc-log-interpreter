@@ -99,7 +99,7 @@ class ProcessController extends Controller
         if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '') {
             $uploadedFile = $_FILES['vescLogFile'];
             $fileError = $uploadedFile['error'];
-            
+
             if (!$fileError) {
                 $filename = $uploadedFile['name'];
                 $fileAbsolutePath = $uploadedFile['tmp_name'];
@@ -110,13 +110,16 @@ class ProcessController extends Controller
                     $errors[] = "$filename has an invalid extension.";
                 }
 
-                // TODO: use try/catch here and throw exceptions during parsing instead of returning a string
-                $result = VescLogInterpreter::getInstance()->main->parseLogFile(
-                    $fileAbsolutePath,
-                    $processGeoloc
-                );
+                try {
+                    $result = VescLogInterpreter::getInstance()->main->parseLogFile(
+                        $fileAbsolutePath,
+                        $processGeoloc
+                    );
+                } catch (\Exception $e) {
+                    $errors[] = $e->getMessage();
+                }
 
-                if (!$result instanceof ParsedData) {
+                if (is_string($result)) {
                     $errors[] = $result;
                     $result = null;
                 }

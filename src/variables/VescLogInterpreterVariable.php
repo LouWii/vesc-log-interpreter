@@ -10,6 +10,7 @@
 
 namespace louwii\vescloginterpreter\variables;
 
+use louwii\vescloginterpreter\models\ChartDataSet;
 use louwii\vescloginterpreter\models\ParsedData;
 use louwii\vescloginterpreter\VescLogInterpreter;
 
@@ -203,6 +204,14 @@ class VescLogInterpreterVariable
         }
 
         return $geoloc;
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogCsvLabelJsonTranslations }}
+     */
+    public function vescLogCsvLabelJsonTranslations()
+    {
+        return json_encode(ChartDataSet::getCsvLabelsToEnglishLabel());
     }
 
     /**

@@ -91,7 +91,7 @@ class DataConverter extends Component
 
         foreach ($valuesForTypes as $type => $values) {
             $dataSet = new ChartDataSet();
-            $dataSet->label = $type;
+            $dataSet->setLabel($type);
             $dataSet->data = $values;
 
             $dataSets[$type] = $dataSet;
@@ -138,6 +138,9 @@ class DataConverter extends Component
         }
     }
 
+    /**
+     * Convert a DataTypeCollection to data for ChartJS
+     */
     public function convertDataTypeCollectionToChartJS(DataTypeCollection $dataTypeCollection)
     {
         $dataSets = array();
@@ -146,7 +149,7 @@ class DataConverter extends Component
         foreach ($dataTypeCollection->getDataTypes() as $dataType) {
             if ($dataType->getName() != 'Time') {
                 $dataSet = new ChartDataSet();
-                $dataSet->label = $dataType->getName();
+                $dataSet->setLabel($dataType->getName());
                 $dataSet->data = $dataType->getValues();
 
                 $dataSets[$dataType->getName()] = $dataSet;
