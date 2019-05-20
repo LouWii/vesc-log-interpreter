@@ -29,33 +29,8 @@ use Craft;
  */
 class VescLogInterpreterVariable
 {
-    private $cachedParsedData;
-
     // Public Methods
     // =========================================================================
-
-    /**
-     * Whatever you want to output to a Twig template can go into a Variable method.
-     * You can have as many variable functions as you want.  From any Twig template,
-     * call it like this:
-     *
-     *     {{ craft.vescLogInterpreter.exampleVariable }}
-     *
-     * Or, if your variable requires parameters from Twig:
-     *
-     *     {{ craft.vescLogInterpreter.exampleVariable(twigValue) }}
-     *
-     * @param null $optional
-     * @return string
-     */
-    public function exampleVariable($optional = null)
-    {
-        $result = "And away we go to the Twig template...";
-        if ($optional) {
-            $result = "I'm feeling optional today...";
-        }
-        return $result;
-    }
 
     /**
      * The action URL to use in the log file upload form
@@ -74,18 +49,7 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataFound()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return false;
-        }
-
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
-            return false;
-        }
-
-        return true;
+        return $this->fetchFromCache('getXAxisLabels') !== null;
     }
 
     /**
@@ -99,18 +63,7 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataAxisLabels()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
-
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
-            return null;
-        }
-
-        return json_encode($parsedData->getXAxisLabels());
+        return $this->fetchFromCache('getXAxisLabels', true);
     }
 
     /**
@@ -124,21 +77,16 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataDatasets()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
+        $dataSets = $this->fetchFromCache('getDataSets');
 
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
+        if ($dataSets === null) {
             return null;
         }
 
         // Need to convert all datasets arrays as they don't use int indexes, but strings
         // json_encode will transform those to Objects and we don't want that
         $returnArray = array();
-        foreach ($parsedData->getDataSets() as $datasetPart) {
+        foreach ($dataSets as $datasetPart) {
             $returnArray[] = array_values($datasetPart);
         }
         return json_encode($returnArray);
@@ -153,18 +101,7 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataErrors()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
-
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getXAxisLabels() === NULL) {
-            return null;
-        }
-
-        return $parsedData->getParsingErrors();
+        return $this->fetchFromCache('getParsingErrors');
     }
 
     /**
@@ -178,25 +115,20 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataMaxValues($valueType = null)
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
+        $maxValues = $this->fetchFromCache('getMaxValues');
 
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getMaxValues() === NULL) {
+        if ($maxValues === null) {
             return null;
         }
 
         if ($valueType) {
-            if (array_key_exists($valueType, $parsedData->getMaxValues())) {
-                return $parsedData->getMaxValues()[$valueType];
+            if (array_key_exists($valueType, $maxValues)) {
+                return $maxValues[$valueType];
             }
             return null;
         }
 
-        return $parsedData->getMaxValues();
+        return $maxValues;
     }
 
     /**
@@ -210,25 +142,20 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataMinValues($valueType = null)
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
+        $minValues = $this->fetchFromCache('getMinValues');
 
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getMinValues() === NULL) {
+        if ($minValues === null) {
             return null;
         }
 
         if ($valueType) {
-            if (array_key_exists($valueType, $parsedData->getMinValues())) {
-                return $parsedData->getMinValues()[$valueType];
+            if (array_key_exists($valueType, $minValues)) {
+                return $minValues[$valueType];
             }
             return null;
         }
 
-        return $parsedData->getMinValues();
+        return $minValues;
     }
 
     /**
@@ -240,25 +167,20 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataAverageValues($valueType = null)
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
+        $averageValues = $this->fetchFromCache('getAverageValues');
 
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getAverageValues() === NULL) {
+        if ($averageValues === null) {
             return null;
         }
 
         if ($valueType) {
-            if (array_key_exists($valueType, $parsedData->getAverageValues())) {
-                return $parsedData->getAverageValues()[$valueType];
+            if (array_key_exists($valueType, $averageValues)) {
+                return $averageValues[$valueType];
             }
             return null;
         }
 
-        return $parsedData->getAverageValues();
+        return $averageValues;
     }
 
     /**
@@ -266,24 +188,30 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataDuration()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp) {
-            return null;
-        }
-
-        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
-
-        if (!$parsedData instanceof ParsedData || $parsedData->getDuration() === NULL) {
-            return null;
-        }
-
-        return $parsedData->getDuration();
+        return $this->fetchFromCache('getDuration');
     }
 
     /**
      * {{ craft.vescLogInterpreter.vesLogDataGeolocation }}
      */
     public function vesLogDataGeolocation()
+    {
+        $geoloc = $this->fetchFromCache('getGeolocation');
+
+        if ($geoloc === null || count($geoloc) == 0) {
+            return null;
+        }
+
+        return $geoloc;
+    }
+
+    /**
+     * Generic function that fetches parsed data from cache, and return result of $getter
+     *  or null if something went wrong
+     * @param string $getter
+     * @param bool $jsonEncode
+     */
+    private function fetchFromCache(string $getter, $jsonEncode = false)
     {
         $timestamp = Craft::$app->request->get('log');
         if (!$timestamp) {
@@ -292,10 +220,18 @@ class VescLogInterpreterVariable
 
         $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!$parsedData instanceof ParsedData || $parsedData->getGeolocation() === NULL || count($parsedData->getGeolocation()) == 0) {
+        if (!$parsedData instanceof ParsedData || $parsedData->$getter() === null) {
             return null;
         }
 
-        return $parsedData->getGeolocation();
+        if ($parsedData->getCaching() == false) {
+            VescLogInterpreter::getInstance()->cache->deleteCachedData($timestamp);
+        }
+
+        if ($jsonEncode) {
+            return json_encode($parsedData->$getter());
+        }
+
+        return $parsedData->$getter();
     }
 }

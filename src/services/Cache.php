@@ -25,6 +25,8 @@ use yii\base\Component;
  */
 class Cache extends Component
 {
+    private $localCache = array();
+
     public function getParsedDataCacheId($timestamp)
     {
         return VescLogInterpreter::getInstance()->name.'--parsed--'.$timestamp;
@@ -76,8 +78,12 @@ class Cache extends Component
      */
     public function retrieveCachedData($timestamp)
     {
-        $parsedData = Craft::$app->cache->get($this->getParsedDataCacheId($timestamp));
-
-        return $parsedData;
+        if (array_key_exists($timestamp, $this->localCache)) {
+            return $this->localCache[$timestamp];
+        } else {
+            $parsedData = Craft::$app->cache->get($this->getParsedDataCacheId($timestamp));
+            $this->localCache[$timestamp] = $parsedData;
+            return $parsedData;
+        }
     }
 }
