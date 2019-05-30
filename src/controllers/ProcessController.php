@@ -116,7 +116,7 @@ class ProcessController extends Controller
                         $processGeoloc
                     );
                 } catch (\Exception $e) {
-                    $errors[] = $e->getMessage();
+                    $errors[] = 'System error: ' . $e->getMessage();
                 }
 
                 if (is_string($result)) {

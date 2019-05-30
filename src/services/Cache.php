@@ -44,7 +44,7 @@ class Cache extends Component
         // Cache processed data
         // Use https://yii2-cookbook.readthedocs.io/caching/
         // Use timestamp to create unique IDs and avoid collision if people submits at the same time
-        if ($parsedData != NULL && count($parsedData->getDataSets()) > 0) {
+        if ($parsedData != NULL && is_array($parsedData->getDataSets()) && count($parsedData->getDataSets()) > 0) {
             if ($parsedData->getCaching()) {
                 // If datasets exist and caching enabled, keep result for a week
                 $cacheTTL = 60*60*24*7;
