@@ -10,6 +10,9 @@
 
 namespace louwii\vescloginterpreter;
 
+use louwii\vescloginterpreter\services\Cache as CacheService;
+use louwii\vescloginterpreter\services\DataCleaner as DataCleanerService;
+use louwii\vescloginterpreter\services\DataConverter as DataConverterService;
 use louwii\vescloginterpreter\services\Main as MainService;
 use louwii\vescloginterpreter\variables\VescLogInterpreterVariable;
 
@@ -37,27 +40,15 @@ use yii\base\Event;
  * @package   VescLogInterpreter
  * @since     1.0.0
  *
- * @property  MainService $main
  */
 class VescLogInterpreter extends Plugin
 {
-    // Static Properties
-    // =========================================================================
-
-    /**
-     * Static property that is an instance of this plugin class so that it can be accessed via
-     * VescLogInterpreter::$plugin
-     *
-     * @var VescLogInterpreter
-     */
-    public static $plugin;
-
     // Public Methods
     // =========================================================================
 
     /**
      * Set our $plugin static property to this class so that it can be accessed via
-     * VescLogInterpreter::$plugin
+     * VescLogInterpreter::getInstance()
      *
      * Called after the plugin class is instantiated; do any one-time initialization
      * here such as hooks and events.
@@ -69,7 +60,13 @@ class VescLogInterpreter extends Plugin
     public function init()
     {
         parent::init();
-        self::$plugin = $this;
+
+        $this->setComponents(array(
+            'cache' => CacheService::class,
+            'dataCleaner' => DataCleanerService::class,
+            'dataConverter' => DataConverterService::class,
+            'main' => MainService::class
+        ));
 
         // Register our site routes
         Event::on(

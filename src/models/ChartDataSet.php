@@ -34,7 +34,7 @@ class ChartDataSet extends Model
 
     public $label;
     public $data;
-    // public $backgroundColor;
+    public $backgroundColor;
     public $borderColor;
     public $fill;
 
@@ -50,14 +50,103 @@ class ChartDataSet extends Model
     // public $pointHoverBorderWidth;
     // public $pointHoverRadius;
 
-    public $lineColors = array(
-        'rgb(54, 162, 235)', //'blue'
-        'rgb(75, 192, 192)', //'green'
-        'rgb(201, 203, 207)', //'grey'
-        'rgb(255, 159, 64)', //'orange'
-        'rgb(153, 102, 255)', //'purple'
-        'rgb(255, 99, 132)', //'red'
-        'rgb(255, 205, 86)', //'yellow'
+    public static $lineColors = array(
+        'blue'         => 'rgb(54, 162, 235)',
+        'lightBlue'    => 'rgb(25, 206, 234)',
+        'paleBlue'     => 'rgb(92, 159, 224)',
+        'marine'       => 'rgb(32, 37, 79)',
+        'green'        => 'rgb(75, 192, 192)',
+        'darkGreen'    => 'rgb(23, 81, 16)',
+        'grey'         => 'rgb(201, 203, 207)',
+        'lightOrange'  => 'rgb(255, 159, 64)',
+        'brightOrange' => 'rgb(234, 93, 0)',
+        'lightPurple'  => 'rgb(153, 102, 255)',
+        'purple'       => 'rgb(96, 60, 168)',
+        'pink'         => 'rgb(255, 99, 132)',
+        'brightRed'    => 'rgb(226, 6, 6)',
+        'darkRed'      => 'rgb(132, 41, 41)',
+        'yellow'       => 'rgb(255, 205, 86)',
+    );
+
+    public static $typeToColor = array(
+        'TempPcb' => 'lightOrange',
+        'MotorCurrent' => 'darkRed',
+        'BatteryCurrent' => 'marine',
+        'DutyCycle' => 'brightOrange',
+        'Speed' => 'pink',
+        'InpVoltage' => 'paleBlue',
+        'AmpHours' => 'darkGreen',
+        'AmpHoursCharged' => 'green',
+        'WattHours' => 'yellow',
+        'WattHoursCharged' => 'blue',
+        'Distance' => 'purple',
+        'Power' => 'lightBlue',
+        'Fault' => 'brightRed',
+        'Altitude' => 'grey',
+        'GPSSpeed' => 'lightPurple',
+    );
+
+    public static $csvLabelToEnglishLabel = array(
+        'TempPcb'        => array(
+            'label' => 'PCB Temp',
+            'unit' => '°C'
+        ),
+        'MotorCurrent'   => array(
+            'label' => 'Motor Current',
+            'unit' => 'A'
+        ),
+        'BatteryCurrent' => array(
+            'label' => 'Battery Current',
+            'unit' => 'A'
+        ),
+        'DutyCycle'      => array(
+            'label' => 'Duty',
+            'unit' => '%'
+        ),
+        'Speed'          => array(
+            'label' => 'Speed',
+            'unit' => 'km/h'
+        ),
+        'InpVoltage'     => array(
+            'label' => 'Battery Voltage',
+            'unit' => 'V'
+        ),
+        'AmpHours'       => array(
+            'label' => 'Ah',
+            'unit' => 'Ah'
+        ),
+        'AmpHoursCharged' => array(
+            'label' => 'Ah Charged',
+            'unit' => 'Ah'
+        ),
+        'WattHours'      => array(
+            'label' => 'Wh',
+            'unit' => 'Wh'
+        ),
+        'WattHoursCharged' => array(
+            'label' => 'Wh Charged',
+            'unit' => 'Wh'
+        ),
+        'Distance'       => array(
+            'label' => 'Distance',
+            'unit' => 'km'
+        ),
+        'Power'          => array(
+            'label' => 'Power',
+            'unit' => 'W'
+        ),
+        'Fault'          => array(
+            'label' => 'Vesc Fault',
+            'unit' => ''
+        ),
+        'Altitude'       => array(
+            'label' => 'Altitude',
+            'unit' => 'm'
+        ),
+        'GPSSpeed'       => array(
+            'label' => 'GPS Speed',
+            'unit' => 'km/h'
+        ),
     );
 
     // Public Methods
@@ -68,10 +157,26 @@ class ChartDataSet extends Model
         $this->label = '';
         $this->data = array();
         $this->fill = FALSE;
-        // $this->backgroundColor = $this->lineColors[rand(0, (count($this->lineColors) - 1))];
-        $this->borderColor = $this->lineColors[rand(0, (count($this->lineColors) - 1))];
+        // $this->backgroundColor = self::$lineColors[rand(0, (count(self::$lineColors) - 1))];
+        $randIdx = rand(0, (count(self::$lineColors) - 1));
+        $this->borderColor = array_values(self::$lineColors)[$randIdx];
 
         $this->pointRadius = 0;
+    }
+
+    public function setLabel(string $label)
+    {
+        $this->label = $label;
+
+        // Set color depending on the label name
+        if (array_key_exists($label, self::$typeToColor)) {
+            $labelColor = self::$typeToColor[$label];
+            if (array_key_exists($labelColor, self::$lineColors)) {
+                $this->borderColor = self::$lineColors[$labelColor];
+                $this->fill = self::$lineColors[$labelColor];
+                $this->backgroundColor = self::$lineColors[$labelColor];
+            }
+        }
     }
 
     /**
@@ -93,5 +198,28 @@ class ChartDataSet extends Model
             ['fill', 'boolean'],
             ['borderColor', 'string']
         ];
+    }
+
+    /**
+     * Get "nice" english label from a CSV label
+     */
+    public static function getEnglishLabelFor(string $csvLabel)
+    {
+        if (array_key_exists($csvLabel, $this->csvLabelToEnglishLabel)) {
+            return $this->csvLabelToEnglishLabel[$csvLabel];
+        }
+        return $csvLabel;
+    }
+
+    public static function getCsvLabelsToEnglishLabel()
+    {
+        // Populate colors from color array
+        $tempArray = ChartDataSet::$csvLabelToEnglishLabel;
+        foreach ($tempArray as $labelKey => $labelData) {
+            $colorName = ChartDataSet::$typeToColor[$labelKey];
+            $labelData['color'] = self::$lineColors[$colorName];
+            $tempArray[$labelKey] = $labelData;
+        }
+        return $tempArray;
     }
 }

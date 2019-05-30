@@ -10,6 +10,8 @@
 
 namespace louwii\vescloginterpreter\variables;
 
+use louwii\vescloginterpreter\models\ChartDataSet;
+use louwii\vescloginterpreter\models\ParsedData;
 use louwii\vescloginterpreter\VescLogInterpreter;
 
 use Craft;
@@ -32,29 +34,6 @@ class VescLogInterpreterVariable
     // =========================================================================
 
     /**
-     * Whatever you want to output to a Twig template can go into a Variable method.
-     * You can have as many variable functions as you want.  From any Twig template,
-     * call it like this:
-     *
-     *     {{ craft.vescLogInterpreter.exampleVariable }}
-     *
-     * Or, if your variable requires parameters from Twig:
-     *
-     *     {{ craft.vescLogInterpreter.exampleVariable(twigValue) }}
-     *
-     * @param null $optional
-     * @return string
-     */
-    public function exampleVariable($optional = null)
-    {
-        $result = "And away we go to the Twig template...";
-        if ($optional) {
-            $result = "I'm feeling optional today...";
-        }
-        return $result;
-    }
-
-    /**
      * The action URL to use in the log file upload form
      * 
      * {{ craft.vescLogInterpreter.formActionUrl }}
@@ -64,6 +43,14 @@ class VescLogInterpreterVariable
     public function formActionUrl()
     {
         return '/actions/vesc-log-interpreter/process/vesc-log';
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogDataFound }}
+     */
+    public function vescLogDataFound()
+    {
+        return $this->fetchFromCache('getXAxisLabels') !== null;
     }
 
     /**
@@ -77,20 +64,7 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataAxisLabels()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
-            return array('No log to look for.');
-        }
-
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
-
-        if (!is_array($data) || $data['axisLabels'] === NULL)
-        {
-            return array('No data found for that log.');
-        }
-
-        return json_encode($data['axisLabels']);
+        return $this->fetchFromCache('getXAxisLabels', true);
     }
 
     /**
@@ -104,23 +78,16 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataDatasets()
     {
-        $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
-            return array('No log to look for.');
-        }
+        $dataSets = $this->fetchFromCache('getDataSets');
 
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
-        if (!is_array($data) || $data['datasets'] === NULL)
-        {
-            return array('No data found for that log.');
+        if ($dataSets === null) {
+            return null;
         }
 
         // Need to convert all datasets arrays as they don't use int indexes, but strings
         // json_encode will transform those to Objects and we don't want that
         $returnArray = array();
-        foreach ($data['datasets'] as $datasetPart)
-        {
+        foreach ($dataSets as $datasetPart) {
             $returnArray[] = array_values($datasetPart);
         }
         return json_encode($returnArray);
@@ -135,19 +102,145 @@ class VescLogInterpreterVariable
      */
     public function vescLogDataErrors()
     {
+        return $this->fetchFromCache('getParsingErrors');
+    }
+
+    /**
+     * Retrieve an array containing all max values for the different types
+     * 
+     * {{ craft.vescLogInterpreter.vescLogDataMaxValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataMaxValues('MotorCurrent') }}
+     * 
+     * @return mixed
+     */
+    public function vescLogDataMaxValues($valueType = null)
+    {
+        $maxValues = $this->fetchFromCache('getMaxValues');
+
+        if ($maxValues === null) {
+            return null;
+        }
+
+        if ($valueType) {
+            if (array_key_exists($valueType, $maxValues)) {
+                return $maxValues[$valueType];
+            }
+            return null;
+        }
+
+        return $maxValues;
+    }
+
+    /**
+     * Retrieve an array containing all min values for the different types
+     * 
+     * {{ craft.vescLogInterpreter.vescLogDataMinValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataMinValues('MotorCurrent') }}
+     * 
+     * @return mixed
+     */
+    public function vescLogDataMinValues($valueType = null)
+    {
+        $minValues = $this->fetchFromCache('getMinValues');
+
+        if ($minValues === null) {
+            return null;
+        }
+
+        if ($valueType) {
+            if (array_key_exists($valueType, $minValues)) {
+                return $minValues[$valueType];
+            }
+            return null;
+        }
+
+        return $minValues;
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogDataAverageValues }}
+     * or
+     * {{ craft.vescLogInterpreter.vescLogDataAverageValues('MotorCurrent') }}
+     * 
+     * @return mixed
+     */
+    public function vescLogDataAverageValues($valueType = null)
+    {
+        $averageValues = $this->fetchFromCache('getAverageValues');
+
+        if ($averageValues === null) {
+            return null;
+        }
+
+        if ($valueType) {
+            if (array_key_exists($valueType, $averageValues)) {
+                return $averageValues[$valueType];
+            }
+            return null;
+        }
+
+        return $averageValues;
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogDataDuration }}
+     */
+    public function vescLogDataDuration()
+    {
+        return $this->fetchFromCache('getDuration');
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vesLogDataGeolocation }}
+     */
+    public function vesLogDataGeolocation()
+    {
+        $geoloc = $this->fetchFromCache('getGeolocation');
+
+        if ($geoloc === null || count($geoloc) == 0) {
+            return null;
+        }
+
+        return $geoloc;
+    }
+
+    /**
+     * {{ craft.vescLogInterpreter.vescLogCsvLabelJsonTranslations }}
+     */
+    public function vescLogCsvLabelJsonTranslations()
+    {
+        return json_encode(ChartDataSet::getCsvLabelsToEnglishLabel());
+    }
+
+    /**
+     * Generic function that fetches parsed data from cache, and return result of $getter
+     *  or null if something went wrong
+     * @param string $getter
+     * @param bool $jsonEncode
+     */
+    private function fetchFromCache(string $getter, $jsonEncode = false)
+    {
         $timestamp = Craft::$app->request->get('log');
-        if (!$timestamp)
-        {
-            return array('No log to look for.');
+        if (!$timestamp) {
+            return null;
         }
 
-        $data = VescLogInterpreter::$plugin->main->retrieveCachedData($timestamp);
+        $parsedData = VescLogInterpreter::getInstance()->cache->retrieveCachedData($timestamp);
 
-        if (!is_array($data) || $data['errors'] === NULL)
-        {
-            return array('No data found for that log.');
+        if (!$parsedData instanceof ParsedData || $parsedData->$getter() === null) {
+            return null;
         }
 
-        return $data['errors'];
+        if ($parsedData->getCaching() == false) {
+            VescLogInterpreter::getInstance()->cache->deleteCachedData($timestamp);
+        }
+
+        if ($jsonEncode) {
+            return json_encode($parsedData->$getter());
+        }
+
+        return $parsedData->$getter();
     }
 }

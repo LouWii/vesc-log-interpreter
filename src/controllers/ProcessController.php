@@ -10,6 +10,7 @@
 
 namespace louwii\vescloginterpreter\controllers;
 
+use louwii\vescloginterpreter\models\ParsedData;
 use louwii\vescloginterpreter\VescLogInterpreter;
 
 use Craft;
@@ -80,58 +81,71 @@ class ProcessController extends Controller
     public function actionVescLog()
     {
         // Check https://gist.github.com/sathoro/8178981 for inspiration
-
         $this->requirePostRequest();
 
-        $errors = array();
-        $datasets = array();
-        $xAxisLabels = array();
+        $processGeoloc = true;
+        if (Craft::$app->getRequest()->getBodyParam('noGeoloc') === 'yes') {
+            $processGeoloc = false;
+        }
 
-        if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '')
-        {
+        $cacheResults = true;
+        if (Craft::$app->getRequest()->getBodyParam('noCache') === 'yes') {
+            $cacheResults = false;
+        }
+
+        $errors = array();
+        $result = null;
+
+        if (array_key_exists('vescLogFile', $_FILES) && $_FILES['vescLogFile']['name'] != '') {
             $uploadedFile = $_FILES['vescLogFile'];
             $fileError = $uploadedFile['error'];
-            if (!$fileError)
-            {
+
+            if (!$fileError) {
                 $filename = $uploadedFile['name'];
                 $fileAbsolutePath = $uploadedFile['tmp_name'];
                 $filenameParts = explode('.', $filename);
                 $extension = end($filenameParts);
 
-                if (!in_array($extension, $this->validExtensions))
-                {
+                if (!in_array($extension, $this->validExtensions)) {
                     $errors[] = "$filename has an invalid extension.";
                 }
 
-                $result = VescLogInterpreter::$plugin->main->parseLogFile($fileAbsolutePath);
-                if (!is_array($result))
-                {
-                    $errors[] = $result;
+                try {
+                    $result = VescLogInterpreter::getInstance()->main->parseLogFile(
+                        $fileAbsolutePath,
+                        $processGeoloc
+                    );
+                } catch (\Exception $e) {
+                    $errors[] = 'System error: ' . $e->getMessage();
                 }
-                else
-                {
-                    $datasets = $result['datasets'];
-                    $xAxisLabels = $result['xAxisLabels'];
+
+                if (is_string($result)) {
+                    $errors[] = $result;
+                    $result = null;
                 }
             }
-        }
-        else
-        {
+        } else {
             $errors[] = 'No file sent';
         }
 
         // Put all our data in cache so it can be displayed after the redirect
         $date = new \DateTime();
         $timestamp = $date->getTimestamp();
-        VescLogInterpreter::$plugin->main->cacheData($timestamp, $xAxisLabels, $datasets, $errors);
+        if (!$result) {
+            $result = new ParsedData();
+            $result->setParsingErrors($errors);
+        }
+
+        $result->setCaching($cacheResults);
+
+        if (!VescLogInterpreter::getInstance()->cache->cacheData($timestamp, $result)) {
+            throw new \Exception('Caching the parsed results failed');
+        }
 
         // Redirect to provided page in POST
-        if (array_key_exists('redirect', $_POST))
-        {
+        if (array_key_exists('redirect', $_POST)) {
             $redirect = $_POST['redirect'];
-        }
-        else
-        {
+        } else {
             $redirect = '/';
         }
 

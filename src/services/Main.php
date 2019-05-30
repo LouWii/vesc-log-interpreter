@@ -11,10 +11,12 @@
 namespace louwii\vescloginterpreter\services;
 
 use louwii\vescloginterpreter\VescLogInterpreter;
+use louwii\vescloginterpreter\models\ChartData;
 use louwii\vescloginterpreter\models\ChartDataSet;
+use louwii\vescloginterpreter\models\DataTypeCollection;
+use louwii\vescloginterpreter\models\ParsedData;
 
-use Craft;
-use craft\base\Component;
+use yii\base\Component;
 
 /**
  * Main Service
@@ -31,128 +33,110 @@ use craft\base\Component;
  */
 class Main extends Component
 {
+    protected $maxFileLineCount = 30000;
+
     // Public Methods
     // =========================================================================
 
     /**
-     * This function can literally be anything you want, and you can have as many service
-     * functions as you want
-     *
-     * From any other plugin file, call it like this:
-     *
-     *     VescLogInterpreter::$plugin->main->exampleService()
-     *
-     * @return mixed
-     */
-    public function exampleService()
-    {
-        $result = 'something';
-
-        return $result;
-    }
-
-    /**
      * Parse the entire Vesc log file
      * 
-     *      VescLogInterpreter::$plugin->main->parseLogFile($filePath)
+     * VescLogInterpreter::getInstance()->main->parseLogFile($filePath)
      *
      * @param string $filePath
+     * @param bool $processGeoloc
      * @return mixed
      */
-    public function parseLogFile($filePath)
+    public function parseLogFile(string $filePath, $processGeoloc = true)
     {
         $handle = fopen($filePath, "r");
-        if ($handle)
-        {
+        if ($handle) {
             $settings = array();
             $headers = array();
-            $values = array();
+            $dataTypeCollection = new DataTypeCollection();
+            $dataPoints = array();
             $lineCount = 0;
-            $headersRead = FALSE;
+            $lastLine = null;
+            $headersRead = false;
+            $dateTimeStart = null;
+            $dateTimeEnd = null;
+            $geoloc = array();
 
             while (($line = fgets($handle)) !== false) {
+                if ($lineCount > $this->maxFileLineCount) {
+                    break;
+                }
+
                 // process the line read.
-                if ($lineCount == 0 && substr($line, 0, 2) == '//')
-                {
+                if ($lineCount == 0 && substr($line, 0, 2) == '//') {
                     // Settings line
                     $settings = $this->parseSettings($line);
-                }
-                elseif (!$headersRead)
-                {
+                } elseif (!$headersRead) {
                     // Treat this line as the headers for the data
                     $headers = $this->parseHeaders($line);
-                    $headersRead = TRUE;
+                    $headersRead = true;
+                } else {
+                    // DataPoints are currently not used
+                    // Mainly because the format makes it harder to convert for ChartJS usage
+                    // But keeping the logic for now
+                    // $dataPoints[] = VescLogInterpreter::getInstance()->dataConverter->convertCsvToDataPoint($headers, $line);
+
+                    VescLogInterpreter::getInstance()->dataConverter->addCsvDataToDataTypeCollection($headers, $line, $dataTypeCollection);
+
+                    if ($dateTimeStart == null) {
+                        $dateTimeStart = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $line);
+                    }
+
+                    if ($processGeoloc) {
+                        $coordinates = VescLogInterpreter::getInstance()->dataConverter->getCoordinatesFromCsv($headers, $line);
+                        if ($coordinates) {
+                            $geoloc[] = $coordinates;
+                        }
+                    }
+
+                    if (strlen($line) > 5) {
+                        $lastLine = $line;
+                    }
                 }
-                else
-                {
-                    // Data row
-                    $values[] = $this->parseData($headers, $line);
-                }
+                $lineCount++;
             }
             fclose($handle);
 
-            if (count($values) == 0)
-            {
-                return 'Couldn\'t find any row containing data.';
+            // Use last line to get last DateTime
+            $dateTimeEnd = VescLogInterpreter::getInstance()->dataConverter->getDateTimeFromCsv($headers, $lastLine);
+
+            if (!$dataTypeCollection->hasValues()) {
+                throw new \Exception('Couldn\'t find any row containing data.');
             }
 
-            $xAxisLabels = array();
-            foreach ($values as $value)
-            {
-                // Convert time string to object
-                // Time is saved as '22_01_2018_22_43_04.657'
-                $timeStr = $value['Time'];
-                $timeParts = explode('_', $timeStr);
-                $timeStrFormated = $timeParts[2].'-'.$timeParts[1].'-'.$timeParts[0].' '.$timeParts[3].':'.$timeParts[4].':'.$timeParts[5];
-                // $dateTime = new \Datetime($timeStrFormated);
+            // Reduce our data to 1 value per second
+            // $dataTypeCollection->reduceAllDataTypeDataPerSecond();
+            VescLogInterpreter::getInstance()->dataCleaner->reduceDataInCollectionToOnePerSecond($dataTypeCollection);
 
-                // $xAxisLabels[] = $value['Time'];
-                // $xAxisLabels[] = $dateTime;
-                $xAxisLabels[] = $timeStrFormated;
+            $dataTypeCollection->checkDataIntegrity();
+
+            $chartData = VescLogInterpreter::getInstance()->dataConverter->convertDataTypeCollectionToChartJS($dataTypeCollection);
+
+            $parsedData = new ParsedData();
+            $parsedData->setXAxisLabels($chartData['xAxisLabels']);
+            $parsedData->setDataSets($chartData['datasets']);
+            $parsedData->setMaxValues($dataTypeCollection->getMaxValues());
+            $parsedData->setMinValues($dataTypeCollection->getMinValues());
+            $parsedData->setAverageValues($dataTypeCollection->getAverageValues());
+
+            if ($dateTimeStart != null && $dateTimeEnd != null) {
+                $duration = $dateTimeStart->diff($dateTimeEnd);
+                $parsedData->setDuration($duration);
             }
 
-            // ChartJS seems to have issues with too many values
-            // We're dividing data into multiple arrays/parts
-            $sliced = FALSE;
-            $maxPerSlice = 2000;
-            if (count($xAxisLabels) > $maxPerSlice && (count($xAxisLabels)-$maxPerSlice) > 200)
-            {
-                $sliced = TRUE;
-                $slicedXAxisLabels = array();
-                $slicedValues = array();
-                $offset = 0;
-                while( count( array_slice($xAxisLabels, $offset, $maxPerSlice) ) > 0)
-                {
-                    $slicedXAxisLabels[] = array_slice($xAxisLabels, $offset, $maxPerSlice);
-                    $slicedValues[] = array_slice($values, $offset, $maxPerSlice);
-                    $offset += $maxPerSlice;
-                }
-                // $xAxisLabels = array_slice($xAxisLabels, 0, 4000);
-                // $values = array_slice($values, 0, 4000);
-                $xAxisLabels = $slicedXAxisLabels;
-                $values = $slicedValues;
+            if (count($geoloc) > 0) {
+                $geoloc = VescLogInterpreter::getInstance()->dataCleaner->reduceGeolocToOnePerSecond($geoloc);
+                $parsedData->setGeolocation($geoloc);
             }
 
-            if ($sliced)
-            {
-                $datasets = array();
-                foreach ($values as $valuesPart)
-                {
-                    $datasets[] = $this->createDataSets($headers, $valuesPart);
-                }
-            }
-            else
-            {
-                $datasets = $this->createDataSets($headers, $values);
-                $xAxisLabels = array($xAxisLabels);
-                $datasets = array($datasets);
-            }
-
-            return array('xAxisLabels' => $xAxisLabels, 'datasets' => $datasets);
-        }
-        else
-        {
-            return 'Couldn\'t read the file after upload.';
+            return $parsedData;
+        } else {
+            throw new \Exception('Couldn\'t read the file after upload.');
         }
     }
 
@@ -166,11 +150,9 @@ class Main extends Component
     {
         $settings = array();
         $settingsParts = explode(',', $line);
-        foreach ($settingsParts as $settingItem)
-        {
+        foreach ($settingsParts as $settingItem) {
             $itemParts = explode('=', $settingItem);
-            if (count($itemParts) == 2)
-            {
+            if (count($itemParts) == 2) {
                 $settings[str_replace(array('_', '//'), array(' ', ''), $itemParts[0])] = $itemParts[1];
             }
         }
@@ -188,142 +170,10 @@ class Main extends Component
     {
         $headers = array();
         $headersParts = explode(',', $line);
-        foreach ($headersParts as $headerItem)
-        {
+        foreach ($headersParts as $headerItem) {
             $headers[] = $headerItem;
         }
 
         return $headers;
-    }
-
-    /**
-     * Parse a data row of the Vesc monitor log
-     *
-     * @param array $headers
-     * @param string $line
-     * @return array
-     */
-    public function parseData($headers, $line)
-    {
-        $dataRow = array();
-        $dataRowParts = explode(',', $line);
-        if (count($dataRowParts) == count($headers))
-        {
-            foreach ($headers as $idx => $header)
-            {
-                if ($header != 'Time')
-                {
-                    $dataRow[$header] = floatval($dataRowParts[$idx]);
-                }
-                else
-                {
-                    $dataRow[$header] = $dataRowParts[$idx];
-                }
-            }
-        }
-        else
-        {
-            throw new Exception('Got '.count($headers).' headers and '.count($dataRowParts).' data items, cannot parse data');
-        }
-
-        return $dataRow;
-    }
-
-    public function createDataSets($headers, $values)
-    {
-        $dataSets = array();
-
-        $dataSetsNotWanted = array('Time', 'TimePassedInMs');
-
-        foreach ($headers as $header)
-        {
-            if (!in_array($header, $dataSetsNotWanted))
-            {
-                $dataSet = new ChartDataSet();
-                $dataSet->label = $header;
-
-                $dataSets[$header] = $dataSet;
-            }
-        }
-
-        foreach ($values as $value)
-        {
-            foreach ($headers as $header)
-            {
-                if (!in_array($header, $dataSetsNotWanted))
-                {
-                    $dataSets[$header]->data[] = $value[$header];
-                }
-            }
-        }
-
-        return $dataSets;
-    }
-
-    public function getDatasetsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--datasets--'.$timestamp;
-    }
-
-    public function getAxisLabelsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--axis_labels--'.$timestamp;
-    }
-
-    public function getErrorsCacheId($timestamp)
-    {
-        return VescLogInterpreter::$plugin->name.'--errors--'.$timestamp;
-    }
-
-    /**
-     * Cache processed data with a unique ID, to be able to keep it for later
-     *
-     * @param int $timestamp
-     * @param array $datasets
-     * @param array $errors
-     * @return bool True if caching worked, false otherwise
-     */
-    public function cacheData($timestamp, $axisLabels, $datasets, $errors)
-    {
-        // Cache processed data
-        // Use https://yii2-cookbook.readthedocs.io/caching/
-        // Use timestamp to create unique IDs and avoid collision if people submits at the same time
-        if ($datasets != NULL && count($datasets) > 0)
-        {
-            // If datasets exist, keep the data for a week
-            $cacheTTL = 60*60*24*7;
-        }
-        else
-        {
-            // If no dataset, then it means process failed, no need to keep it for long
-            $cacheTTL = 3600;
-        }
-
-        return
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp), $datasets, $cacheTTL)
-            &&
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp), $axisLabels, $cacheTTL)
-            &&
-            Craft::$app->cache->set(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp), $errors, $cacheTTL)
-            ;
-    }
-
-    /**
-     * Retrieve data from the cache
-     *
-     * @param [type] $timestamp
-     * @return void
-     */
-    public function retrieveCachedData($timestamp)
-    {
-        $xAxisLabels = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getAxisLabelsCacheId($timestamp));
-        $datasets = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getDatasetsCacheId($timestamp));
-        $errors = Craft::$app->cache->get(VescLogInterpreter::$plugin->main->getErrorsCacheId($timestamp));
-
-        return array(
-            'axisLabels' => $xAxisLabels,
-            'datasets' => $datasets,
-            'errors' => $errors
-        );
     }
 }
